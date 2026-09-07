@@ -124,6 +124,7 @@ export function selectConvexDeployPlan(env: NodeJS.ProcessEnv): ConvexDeployPlan
 }
 
 export async function main(env: NodeJS.ProcessEnv = process.env) {
+  await run("wrangler", ["types"], env);
   const plan = selectConvexDeployPlan(env);
 
   if (plan.kind === "frontendOnly") {
