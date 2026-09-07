@@ -3,6 +3,7 @@ import { verifyObjectGrant } from "../shared/objectGrant";
 import { receiveEmail } from "./inbound";
 
 type MailEnv = Env & { MAIL_BRIDGE_SECRET: string; MAIL_RECOVERY_ADDRESS: string };
+const encoder = new TextEncoder();
 
 function json(value: unknown, status = 200) {
   return new Response(JSON.stringify(value), {
@@ -18,6 +19,32 @@ function hasBridgeAccess(request: Request, env: MailEnv) {
   );
 }
 
+function safeMessageId(value: string | null) {
+  if (!value || /[\r\n]/.test(value)) {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized && encoder.encode(normalized).byteLength <= 2_048 ? normalized : null;
+}
+
+function safeReferences(values: string[]) {
+  const selected: string[] = [];
+  let byteLength = 0;
+  for (const value of values.toReversed()) {
+    const messageId = safeMessageId(value);
+    if (!messageId) {
+      continue;
+    }
+    const nextLength = encoder.encode(messageId).byteLength + (selected.length > 0 ? 1 : 0);
+    if (byteLength + nextLength > 2_048) {
+      continue;
+    }
+    selected.unshift(messageId);
+    byteLength += nextLength;
+  }
+  return selected.join(" ");
+}
+
 async function sendMail(request: Request, env: MailEnv) {
   if (!env.MAIL_BRIDGE_SECRET) {
     return json({ error: "service_unavailable" }, 503);
@@ -30,11 +57,13 @@ async function sendMail(request: Request, env: MailEnv) {
     return json(sendMailResponse.parse({ kind: "rejected", code: "invalid_request" }), 400);
   }
   const headers: Record<string, string> = {};
-  if (parsed.data.inReplyTo) {
-    headers["In-Reply-To"] = parsed.data.inReplyTo;
+  const inReplyTo = safeMessageId(parsed.data.inReplyTo);
+  if (inReplyTo) {
+    headers["In-Reply-To"] = inReplyTo;
   }
-  if (parsed.data.references.length > 0) {
-    headers["References"] = parsed.data.references.join(" ");
+  const references = safeReferences(parsed.data.references);
+  if (references) {
+    headers["References"] = references;
   }
   try {
     const result = await env.EMAIL.send({

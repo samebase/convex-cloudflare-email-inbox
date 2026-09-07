@@ -34,4 +34,41 @@ describe("Worker HTTP authorization", () => {
 
     expect(response.status).toBe(503);
   });
+
+  it("omits invalid reply headers and keeps complete references within the provider limit", async () => {
+    let sent: unknown;
+    const request = new Request("https://mail.example/api/mail/send", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer configured",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        version: 1,
+        from: "inbox@json.md",
+        to: ["person@example.com"],
+        cc: [],
+        subject: "Reply",
+        text: "Body",
+        inReplyTo: "<bad\r\nmessage@example.com>",
+        references: ["界".repeat(700), "<safe@example.com>"],
+      }),
+    });
+    const environment = {
+      MAIL_BRIDGE_SECRET: "configured",
+      EMAIL: {
+        async send(value: unknown) {
+          sent = value;
+          return { messageId: "<sent@example.com>" };
+        },
+      },
+    };
+
+    // @ts-expect-error This route does not read the R2 or static asset bindings.
+    const response = await worker.fetch(request, environment);
+
+    expect(response.status).toBe(200);
+    expect(sent).toMatchObject({ headers: { References: "<safe@example.com>" } });
+    expect(sent).not.toMatchObject({ headers: { "In-Reply-To": expect.anything() } });
+  });
 });
