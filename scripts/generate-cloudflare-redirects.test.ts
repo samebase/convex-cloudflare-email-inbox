@@ -20,10 +20,6 @@ describe("generate-cloudflare-redirects", () => {
         "",
         "/_landing.html / 301",
         "/ /_landing.html 200",
-        "",
-        "/about/index.html /about 301",
-        "/about /about/index.html 200",
-        "/about/ /about/index.html 200",
       ].join("\n"),
     );
   });
@@ -49,10 +45,6 @@ describe("generate-cloudflare-redirects", () => {
         "",
         "/_landing.html / 301",
         "/ /_landing.html 200",
-        "",
-        "/about/index.html /about 301",
-        "/about /about/index.html 200",
-        "/about/ /about/index.html 200",
         generatedRedirectsEndTag,
         "/external https://example.com 302",
         "",

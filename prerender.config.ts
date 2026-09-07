@@ -24,10 +24,4 @@ export const prerenderPages = [
       outputPath: "/_landing.html",
     },
   },
-  {
-    path: "/about",
-    prerender: {
-      enabled: true,
-    },
-  },
 ] as const satisfies readonly PrerenderPage[];
