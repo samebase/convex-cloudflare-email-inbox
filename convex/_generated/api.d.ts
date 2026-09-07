@@ -8,10 +8,15 @@
  * @module
  */
 
+import type * as access from "../access.js";
 import type * as auth from "../auth.js";
-import type * as guests from "../guests.js";
+import type * as bootstrap from "../bootstrap.js";
+import type * as delivery from "../delivery.js";
 import type * as http from "../http.js";
-import type * as todos from "../todos.js";
+import type * as inboxes from "../inboxes.js";
+import type * as ingress from "../ingress.js";
+import type * as mail from "../mail.js";
+import type * as objects from "../objects.js";
 
 import type {
   ApiFromModules,
@@ -20,10 +25,15 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  access: typeof access;
   auth: typeof auth;
-  guests: typeof guests;
+  bootstrap: typeof bootstrap;
+  delivery: typeof delivery;
   http: typeof http;
-  todos: typeof todos;
+  inboxes: typeof inboxes;
+  ingress: typeof ingress;
+  mail: typeof mail;
+  objects: typeof objects;
 }>;
 
 /**

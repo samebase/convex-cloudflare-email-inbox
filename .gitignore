@@ -16,6 +16,7 @@ dist-ssr
 .env*
 .convex
 convex/.tmp
+worker-configuration.d.ts
 
 # Editor directories and files
 .vscode/*

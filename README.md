@@ -1,30 +1,29 @@
-# Samebase app
+# Samebase Mail
 
-This repository is the starter app that Samebase copies into a new GitHub repository.
+Samebase Mail is a private mail desk for multiple addresses on domains that you own. The first
+deployment accepts `inbox@json.md` and `notes@json.md`. The owner can create more `json.md`
+addresses in the app.
 
-It is a small, complete app base. It includes working authentication, real-time data, sharing, and
-deployment paths without adding product-specific services that a new app might not need.
+The app has no AI agent, MCP server, template system, or public account flow.
 
-For the complete provider setup, use the
-[Samebase do-it-yourself guide](https://samebase.com/docs/do-it-yourself). This README covers work
-inside the repository.
+## Architecture
 
-## Stack
+- One Cloudflare Worker receives routed email, parses MIME, serves the web app, and sends replies.
+- One private R2 bucket stores complete `.eml` files and named attachments.
+- Convex stores inbox rules, ingress receipts, threads, message metadata, readable bodies, and
+  outbound delivery state.
+- Convex Auth allows one owner email. First sign-up also needs a one-time setup code.
 
-- React 19 and TanStack Start in SPA mode
-- Convex for the real-time backend, database, and guest authentication
-- Cloudflare Workers Static Assets for delivery
-- shadcn/ui primitives for the user interface
-- Vite+ for development, formatting, linting, tests, and builds
-- Node.js 24 for application and automation code
+The Worker routes mail by the SMTP envelope recipient. This also handles BCC mail. Before it writes
+to R2, it reserves `(inbox, SHA-256 of raw message)` in Convex. A repeated delivery uses the same R2
+keys and cannot increment message counters twice.
 
-The example app is a public todo list. Guests can sign in without an external identity provider,
-create todos, see real-time updates, and scan a QR code to open the same list on another device.
+R2 is not a second business database. Convex keeps every searchable field and every state
+transition. R2 only keeps bytes that must retain their complete form or filename.
 
 ## Local development
 
-Install [Vite+](https://viteplus.dev/guide/) and use it to supply the Node.js version in
-`.node-version`. Run `corepack enable` once to make the pinned pnpm version available.
+Install [Vite+](https://viteplus.dev/guide/), then run:
 
 ```sh
 corepack enable
@@ -32,88 +31,54 @@ pnpm install
 pnpm run dev
 ```
 
-The development command starts Convex and TanStack Start together. It also creates missing Convex
-Auth JWT keys in the development deployment. In a linked Git worktree, the same command
-automatically uses an isolated local backend. Convex writes `VITE_CONVEX_URL` to `.env.local`; do
-not set it manually.
+The development command starts Convex and TanStack Start. It does not send real email. Use
+Cloudflare's local email-event endpoint when testing the Worker handler.
 
-To force the isolated backend outside a linked worktree, use:
+The following Convex environment variables are required:
 
-```sh
-pnpm run dev:worktree
-```
+| Name                 | Purpose                                                        |
+| -------------------- | -------------------------------------------------------------- |
+| `OWNER_EMAIL`        | The only email that can sign in                                |
+| `OWNER_SETUP_SECRET` | The one-time code required for first sign-up                   |
+| `MAIL_BRIDGE_SECRET` | Authenticates Worker and Convex requests and signs file grants |
+| `MAIL_WORKER_URL`    | Public URL of the deployed Worker                              |
 
-The core workflow runs on macOS, Linux, and Windows. See
-[`docs/local-setup.md`](./docs/local-setup.md) for the local Convex setup and troubleshooting steps.
+The Worker uses `MAIL_BRIDGE_SECRET` and `MAIL_RECOVERY_ADDRESS` as secrets. The recovery address
+must be a verified Cloudflare Email Routing destination. It only receives a copy when storage or
+the Convex handoff fails. `wrangler.jsonc` supplies the Convex site URL and binds `MAIL_STORAGE`,
+`EMAIL`, and `ASSETS`.
 
-## Checks and builds
-
-| Command                           | Purpose                                                        |
-| --------------------------------- | -------------------------------------------------------------- |
-| `pnpm run check`                  | Format, lint, type-check, test, and verify generated redirects |
-| `pnpm run build`                  | Run the complete Cloudflare build path                         |
-| `pnpm run deploy:dry-run`         | Validate a production upload without publishing it             |
-| `pnpm run deploy:preview:dry-run` | Validate a preview upload without publishing it                |
-
-The dry-run commands need `CLOUDFLARE_WORKER_NAME`.
-
-On macOS or Linux:
+To create the two initial inboxes in a deployment, run:
 
 ```sh
-export CLOUDFLARE_WORKER_NAME=my-worker
+pnpm exec convex run bootstrap:defaultInboxes
 ```
 
-On Windows PowerShell:
+Add `--prod` for production.
 
-```powershell
-$env:CLOUDFLARE_WORKER_NAME = "my-worker"
-```
+## Checks and deploys
 
-## Deployment contract
+| Command                   | Purpose                                               |
+| ------------------------- | ----------------------------------------------------- |
+| `pnpm run check`          | Format, lint, type-check, and test the app            |
+| `pnpm run build`          | Run the complete Cloudflare build path                |
+| `pnpm run deploy:dry-run` | Build and validate a Worker upload without publishing |
+| `pnpm run deploy`         | Build and deploy the production Worker                |
 
-Cloudflare Workers Builds runs `pnpm run build` for all branches. It then uses:
+Cloudflare Workers Builds deploys `main` to production. Other branches upload preview versions and
+use Convex preview deployments.
 
-| Branch type             | Deploy command            | Convex key                  |
-| ----------------------- | ------------------------- | --------------------------- |
-| `main`                  | `pnpm run deploy`         | `CONVEX_DEPLOY_KEY`         |
-| Non-production branches | `pnpm run deploy:preview` | `PREVIEW_CONVEX_DEPLOY_KEY` |
+## Mail delivery rules
 
-`scripts/build-cloudflare.ts` selects the Convex key from `WORKERS_CI_BRANCH` and fails closed when
-the branch identity is missing. `scripts/verify-current-branch-head.ts` prevents an older concurrent
-build from deploying backend code after a newer commit reaches the same branch. `convex deploy
---cmd` supplies `VITE_CONVEX_URL` to the frontend build, so it is not a Cloudflare build variable.
-
-See [`docs/cloudflare-workers-builds.md`](./docs/cloudflare-workers-builds.md) for the detailed build
-and deploy behavior. Use the
-[do-it-yourself guide](https://samebase.com/docs/do-it-yourself) for the provider dashboard setup.
-
-## Important files
-
-- `package.json` defines the supported development, check, build, and deploy commands.
-- `prerender.config.ts` defines the public pages shared by TanStack Start and Cloudflare.
-- `vite.config.ts` defines the TanStack Start SPA and prerender behavior.
-- `wrangler.jsonc` defines Cloudflare static assets, SPA fallback, and preview URLs.
-- `scripts/build-cloudflare.ts` owns the Cloudflare build and Convex deployment selection.
-- `scripts/deploy-cloudflare.ts` owns production, preview, and dry-run uploads.
-- `convex/` contains the backend, schema, authentication, and generated Convex bindings.
-- `src/` contains the React application and routes.
-
-## Generated and managed files
-
-- `src/routeTree.gen.ts` is generated by TanStack Router.
-- `convex/_generated/api.*`, `dataModel.d.ts`, and `server.*` are generated by Convex.
-- `convex/_generated/ai/`, `.agents/skills/`, `skills-lock.json`, and the marked Convex sections in
-  `AGENTS.md` and `CLAUDE.md` are managed by `npx convex ai-files install`.
-- The marked Vite+ section in `AGENTS.md` is generated by `vp config`. The package `prepare`
-  command uses `--no-agent`, so installs do not rewrite it.
-- `scripts/generate-cloudflare-redirects.ts` owns only the marked generated block in
-  `public/_redirects`. Custom redirect rules can stay outside that block.
-
-Do not hand-edit generated files when their source tool can update them.
-When a Convex AI-file update changes the installed source snapshot, confirm its distribution license
-and update `THIRD_PARTY_NOTICES.md` when its third-party material changes.
+- Unknown inboxes get a permanent SMTP rejection.
+- A parse failure still creates a visible raw-only message.
+- Displayed text and HTML bodies are capped at 512 KiB. The full raw message stays in R2.
+- Threads join only through `References` or `In-Reply-To`. Equal subjects stay separate.
+- An outbound timeout becomes `unknown` and does not retry automatically. This prevents duplicate
+  email when the provider accepted a send but its response was lost.
+- The reading pane loads the latest 10 messages in a thread to keep Convex responses bounded.
+- The app displays plain text. It does not render untrusted HTML.
 
 ## License
 
-Licensed under the [Apache License 2.0](./LICENSE). See
-[`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md) for included third-party material.
+Licensed under the [Apache License 2.0](./LICENSE).

@@ -7,10 +7,20 @@ import { prerenderPages } from "./prerender.config.ts";
 
 export default defineConfig({
   fmt: {
-    ignorePatterns: [".agents/**", "convex/_generated/**", "src/routeTree.gen.ts"],
+    ignorePatterns: [
+      ".agents/**",
+      "convex/_generated/**",
+      "src/routeTree.gen.ts",
+      "worker-configuration.d.ts",
+    ],
   },
   lint: {
-    ignorePatterns: [".agents/**", "convex/_generated/**", "src/routeTree.gen.ts"],
+    ignorePatterns: [
+      ".agents/**",
+      "convex/_generated/**",
+      "src/routeTree.gen.ts",
+      "worker-configuration.d.ts",
+    ],
     options: { typeAware: true },
   },
   plugins: [

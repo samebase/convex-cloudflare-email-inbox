@@ -8,8 +8,4 @@
 
 /_landing.html / 301
 / /_landing.html 200
-
-/about/index.html /about 301
-/about /about/index.html 200
-/about/ /about/index.html 200
 # @samebase/base-prerender-redirects:end
