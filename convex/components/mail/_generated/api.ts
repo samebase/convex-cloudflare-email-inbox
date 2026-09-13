@@ -13,6 +13,7 @@ import type * as delivery from "../delivery.js";
 import type * as inboxes from "../inboxes.js";
 import type * as ingress from "../ingress.js";
 import type * as mail from "../mail.js";
+import type * as mailProtocol from "../mailProtocol.js";
 import type * as objects from "../objects.js";
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
@@ -24,6 +25,7 @@ const fullApi: ApiFromModules<{
   inboxes: typeof inboxes;
   ingress: typeof ingress;
   mail: typeof mail;
+  mailProtocol: typeof mailProtocol;
   objects: typeof objects;
 }> = anyApi as any;
 

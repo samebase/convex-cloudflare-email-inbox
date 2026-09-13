@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { normalizeMailAddress } from "../../../shared/mailProtocol";
 import { mutation, query } from "./_generated/server";
+import { normalizeMailAddress } from "./mailProtocol";
 
 const inboxSummary = v.object({
   _id: v.id("inboxes"),

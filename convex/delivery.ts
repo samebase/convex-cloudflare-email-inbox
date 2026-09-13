@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { sendMailResponse } from "../shared/mailProtocol";
+import { sendMailResponse } from "./components/mail/mailProtocol";
 import { components } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 

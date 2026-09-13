@@ -1,8 +1,8 @@
 import { paginator } from "convex-helpers/server/pagination";
 import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
-import { normalizeMailAddress } from "../../../shared/mailProtocol";
 import { mutation, query } from "./_generated/server";
+import { normalizeMailAddress } from "./mailProtocol";
 import schema from "./schema";
 
 const threadSummary = v.object({

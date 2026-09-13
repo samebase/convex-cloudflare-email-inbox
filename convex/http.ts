@@ -7,7 +7,7 @@ import {
   beginIngressResponse,
   completeIngressRequest,
   completeIngressResponse,
-} from "../shared/mailProtocol";
+} from "./components/mail/mailProtocol";
 
 const http = httpRouter();
 

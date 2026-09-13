@@ -6,7 +6,7 @@ import {
   mailAddress,
   type BeginIngressRequest,
   type CompleteIngressRequest,
-} from "../shared/mailProtocol";
+} from "../convex/components/mail/mailProtocol";
 
 const MAX_RAW_BYTES = 25 * 1_024 * 1_024;
 const MAX_BODY_BYTES = 512 * 1_024;

@@ -1,4 +1,4 @@
-import { sendMailRequest, sendMailResponse } from "../shared/mailProtocol";
+import { sendMailRequest, sendMailResponse } from "../convex/components/mail/mailProtocol";
 import { verifyObjectGrant } from "../shared/objectGrant";
 import { receiveEmail } from "./inbound";
 
