@@ -23,3 +23,5 @@ peerDependencyRules:
   allowedVersions:
     vite: "*"
     vitest: "*"
+patchedDependencies:
+  convex-helpers@0.1.124: patches/convex-helpers@0.1.124.patch

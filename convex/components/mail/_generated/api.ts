@@ -8,31 +8,24 @@
  * @module
  */
 
-import type * as access from "../access.js";
-import type * as auth from "../auth.js";
 import type * as bootstrap from "../bootstrap.js";
 import type * as delivery from "../delivery.js";
-import type * as http from "../http.js";
 import type * as inboxes from "../inboxes.js";
+import type * as ingress from "../ingress.js";
 import type * as mail from "../mail.js";
 import type * as objects from "../objects.js";
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
+import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
+import { anyApi, componentsGeneric } from "convex/server";
 
-declare const fullApi: ApiFromModules<{
-  access: typeof access;
-  auth: typeof auth;
+const fullApi: ApiFromModules<{
   bootstrap: typeof bootstrap;
   delivery: typeof delivery;
-  http: typeof http;
   inboxes: typeof inboxes;
+  ingress: typeof ingress;
   mail: typeof mail;
   objects: typeof objects;
-}>;
+}> = anyApi as any;
 
 /**
  * A utility for referencing Convex functions in your app's public API.
@@ -42,10 +35,7 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "public">
->;
+export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> = anyApi as any;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -55,11 +45,9 @@ export declare const api: FilterApi<
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<
+export const internal: FilterApi<
   typeof fullApi,
   FunctionReference<any, "internal">
->;
+> = anyApi as any;
 
-export declare const components: {
-  mail: import("../components/mail/_generated/component.js").ComponentApi<"mail">;
-};
+export const components = componentsGeneric() as unknown as {};

@@ -2,7 +2,7 @@
 
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vite-plus/test";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 
 const modules = import.meta.glob([
@@ -70,8 +70,8 @@ describe("outbound delivery state", () => {
   it("allows only one claim for a queued message", async () => {
     const { messageId, t } = await queuedMessage();
 
-    const first = await t.mutation(internal.delivery.claim, { messageId });
-    const second = await t.mutation(internal.delivery.claim, { messageId });
+    const first = await t.mutation(api.delivery.claim, { messageId });
+    const second = await t.mutation(api.delivery.claim, { messageId });
 
     expect(first).toMatchObject({ from: "inbox@json.md", text: "Body" });
     expect(second).toBeNull();
@@ -79,10 +79,10 @@ describe("outbound delivery state", () => {
 
   it("keeps an uncertain send terminal until a manual new request", async () => {
     const { messageId, t } = await queuedMessage();
-    await t.mutation(internal.delivery.claim, { messageId });
+    await t.mutation(api.delivery.claim, { messageId });
 
-    await t.mutation(internal.delivery.finish, { messageId, outcome: { kind: "unknown" } });
-    const repeatClaim = await t.mutation(internal.delivery.claim, { messageId });
+    await t.mutation(api.delivery.finish, { messageId, outcome: { kind: "unknown" } });
+    const repeatClaim = await t.mutation(api.delivery.claim, { messageId });
     const message = await t.run(async (ctx) => await ctx.db.get(messageId));
 
     expect(repeatClaim).toBeNull();
@@ -94,7 +94,7 @@ describe("outbound delivery state", () => {
 
   it("marks a stranded sending state unknown without retrying it", async () => {
     const { messageId, t } = await queuedMessage();
-    await t.mutation(internal.delivery.claim, { messageId });
+    await t.mutation(api.delivery.claim, { messageId });
 
     await t.mutation(internal.delivery.markUnknownIfStale, {
       messageId,

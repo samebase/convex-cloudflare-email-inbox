@@ -1,10 +1,10 @@
 import { useAuthActions } from "@convex-dev/auth/react";
+import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
-import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { ArrowLeft, Download, Inbox, LogOut, MailPlus, Paperclip, Plus, Send } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "#components/ui/button";
 import { Input } from "#components/ui/input";
 import { Textarea } from "#components/ui/textarea";
@@ -20,13 +20,17 @@ type InboxSummary = FunctionReturnType<typeof api.inboxes.list>[number];
 type ThreadSummary = FunctionReturnType<typeof api.mail.listThreads>["page"][number];
 type ThreadDetail = NonNullable<FunctionReturnType<typeof api.mail.getThread>>;
 type MessageView = FunctionReturnType<typeof api.mail.listMessages>["page"][number];
-type ComposeTarget = { kind: "new" } | { kind: "reply"; threadId: Id<"emailThreads"> } | null;
+type InboxId = InboxSummary["_id"];
+type ThreadId = ThreadSummary["_id"];
+type MessageId = MessageView["_id"];
+type AttachmentId = MessageView["attachments"][number]["_id"];
+type ComposeTarget = { kind: "new" } | { kind: "reply"; threadId: ThreadId } | null;
 
 export function MailWorkspace() {
   const { signOut } = useAuthActions();
   const inboxes = useQuery(api.inboxes.list, {});
-  const [selectedInboxId, setSelectedInboxId] = useState<Id<"inboxes"> | null>(null);
-  const [selectedThreadId, setSelectedThreadId] = useState<Id<"emailThreads"> | null>(null);
+  const [selectedInboxId, setSelectedInboxId] = useState<InboxId | null>(null);
+  const [selectedThreadId, setSelectedThreadId] = useState<ThreadId | null>(null);
   const [composeTarget, setComposeTarget] = useState<ComposeTarget>(null);
   const [mobilePane, setMobilePane] = useState<"inboxes" | "threads" | "message">("inboxes");
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -60,7 +64,7 @@ export function MailWorkspace() {
     activeInboxes.find((inbox) => inbox._id === (thread?.inboxId ?? selectedInboxId)) ??
     activeInboxes[0];
 
-  const openThread = (threadId: Id<"emailThreads">) => {
+  const openThread = (threadId: ThreadId) => {
     setSelectedThreadId(threadId);
     setComposeTarget(null);
     setMobilePane("message");
@@ -178,8 +182,8 @@ function InboxPane({
 }: {
   className: string;
   inboxes: InboxSummary[];
-  selectedInboxId: Id<"inboxes"> | null;
-  onSelect: (inboxId: Id<"inboxes"> | null) => void;
+  selectedInboxId: InboxId | null;
+  onSelect: (inboxId: InboxId | null) => void;
 }) {
   const createInbox = useMutation(api.inboxes.create);
   const [isAdding, setIsAdding] = useState(false);
@@ -284,12 +288,12 @@ function ThreadPane({
 }: {
   className: string;
   threads: ThreadSummary[];
-  selectedThreadId: Id<"emailThreads"> | null;
+  selectedThreadId: ThreadId | null;
   canLoadMore: boolean;
   isLoading: boolean;
   onBack: () => void;
   onLoadMore: () => void;
-  onSelect: (threadId: Id<"emailThreads">) => void;
+  onSelect: (threadId: ThreadId) => void;
 }) {
   return (
     <section className={`${className} min-h-0 flex-col border-r`}>
@@ -374,8 +378,8 @@ function MessagePane({
 
   const download = async (
     object:
-      | { kind: "raw"; messageId: Id<"emailMessages"> }
-      | { kind: "attachment"; attachmentId: Id<"emailAttachments"> },
+      | { kind: "raw"; messageId: MessageId }
+      | { kind: "attachment"; attachmentId: AttachmentId },
   ) => {
     setDownloadError("");
     try {
@@ -483,7 +487,7 @@ function ComposePane({
   onCancel,
   onSent,
 }: {
-  inboxId: Id<"inboxes">;
+  inboxId: InboxId;
   inboxAddress: string;
   thread: ThreadDetail | null | undefined;
   latestMessage: MessageView | undefined;

@@ -10,9 +10,14 @@ The app has no AI agent, MCP server, template system, or public account flow.
 
 - One Cloudflare Worker receives routed email, parses MIME, serves the web app, and sends replies.
 - One private R2 bucket stores complete `.eml` files and named attachments.
-- Convex stores inbox rules, ingress receipts, threads, message metadata, readable bodies, and
-  outbound delivery state.
+- A local Convex mail component stores inbox rules, ingress receipts, threads, message metadata,
+  readable bodies, and outbound delivery state.
 - Convex Auth allows one owner email. First sign-up also needs a one-time setup code.
+
+The app keeps owner authentication, Cloudflare Email Routing, network delivery, and R2 access in
+thin adapters outside the component. The component owns the reusable mail schema and business
+logic. This boundary lets another Convex app install the mail backend without taking the current
+app shell or Cloudflare configuration.
 
 The Worker routes mail by the SMTP envelope recipient. This also handles BCC mail. Before it writes
 to R2, it reserves `(inbox, SHA-256 of raw message)` in Convex. A repeated delivery uses the same R2

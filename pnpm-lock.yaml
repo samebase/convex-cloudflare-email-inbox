@@ -20,6 +20,9 @@ overrides:
   vite: npm:@voidzero-dev/vite-plus-core@0.3.0
   vitest: 4.1.11
 
+patchedDependencies:
+  convex-helpers@0.1.124: f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511
+
 importers:
 
   .:
@@ -48,6 +51,9 @@ importers:
       convex:
         specifier: ^1.45.0
         version: 1.45.0(react@19.2.6)
+      convex-helpers:
+        specifier: 0.1.124
+        version: 0.1.124(patch_hash=f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511)(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.6))(hono@4.12.34)(react@19.2.6)(typescript@6.0.3)(zod@4.5.4)
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@19.2.6)
@@ -2699,6 +2705,28 @@ packages:
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
+
+  convex-helpers@0.1.124:
+    resolution: {integrity: sha512-Gbu/jq6I3x5Y51cXP5c7+CI3t15vX5Xi2G0tOym3rxpBtYqrI+qWwxkqZgJYrHHccY42wZudB8h6kS3fak8Aeg==}
+    hasBin: true
+    peerDependencies:
+      '@standard-schema/spec': ^1.0.0
+      convex: ^1.43.0
+      hono: ^4.0.5
+      react: ^17.0.2 || ^18.0.0 || ^19.0.0
+      typescript: ^5.5 || ^6.0.0 || ^7.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@standard-schema/spec':
+        optional: true
+      hono:
+        optional: true
+      react:
+        optional: true
+      typescript:
+        optional: true
+      zod:
+        optional: true
 
   convex-test@0.0.56:
     resolution: {integrity: sha512-dLYXlQjKFoGqvjAmPzyLgb2HsYI7iLo1iuNTU2DZmSrMRLWosYk94erjSU67GG5ovfP6+MjX8RJO+ebhmL6QYA==}
@@ -6484,6 +6512,16 @@ snapshots:
   content-type@2.0.0: {}
 
   convert-source-map@2.0.0: {}
+
+  convex-helpers@0.1.124(patch_hash=f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511)(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.6))(hono@4.12.34)(react@19.2.6)(typescript@6.0.3)(zod@4.5.4):
+    dependencies:
+      convex: 1.45.0(react@19.2.6)
+    optionalDependencies:
+      '@standard-schema/spec': 1.1.0
+      hono: 4.12.34
+      react: 19.2.6
+      typescript: 6.0.3
+      zod: 4.5.4
 
   convex-test@0.0.56(convex@1.45.0(react@19.2.6)):
     dependencies:

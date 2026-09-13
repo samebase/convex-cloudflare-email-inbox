@@ -1,0 +1,26 @@
+diff --git a/server/stream.ts b/server/stream.ts
+index 2b1308aa1870ace24fb02be4bd3889d0ee941fd1..61aa8b4b3e70cd534a41fecae1ca68e416706fc7 100644
+--- a/server/stream.ts
++++ b/server/stream.ts
+@@ -446,8 +446,8 @@ export abstract class QueryStream<
+       page,
+       isDone: !hasMore,
+       continueCursor,
+-      pageStatus,
+-      splitCursor: splitCursor ? serializeCursor(splitCursor) : undefined,
++      ...(pageStatus ? { pageStatus } : {}),
++      ...(splitCursor ? { splitCursor: serializeCursor(splitCursor) } : {}),
+     };
+   }
+   async collect() {
+@@ -765,7 +765,9 @@ export class OrderedStreamQuery<
+         upperBound: this.parent.q.upperBoundIndexKey ?? [],
+         upperBoundInclusive: this.parent.q.upperBoundInclusive,
+       },
+-      indexRange: this.parent.indexRange,
++      ...(this.parent.indexRange
++        ? { indexRange: this.parent.indexRange }
++        : {}),
+     };
+   }
+   /**

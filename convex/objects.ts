@@ -1,12 +1,12 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { action, internalQuery } from "./_generated/server";
 import { createObjectGrant } from "../shared/objectGrant";
 
 const objectReference = v.union(
-  v.object({ kind: v.literal("raw"), messageId: v.id("emailMessages") }),
-  v.object({ kind: v.literal("attachment"), attachmentId: v.id("emailAttachments") }),
+  v.object({ kind: v.literal("raw"), messageId: v.string() }),
+  v.object({ kind: v.literal("attachment"), attachmentId: v.string() }),
 );
 
 const objectDescriptor = v.object({
@@ -24,30 +24,7 @@ export const resolve = internalQuery({
     if (!ownerEmail || user?.email?.trim().toLowerCase() !== ownerEmail) {
       return null;
     }
-    if (object.kind === "attachment") {
-      const attachment = await ctx.db.get(object.attachmentId);
-      if (!attachment) {
-        return null;
-      }
-      return {
-        r2Key: attachment.r2Key,
-        filename: attachment.originalFilename,
-        contentType: attachment.mimeType,
-      };
-    }
-    const message = await ctx.db.get(object.messageId);
-    if (!message || message.transport.kind !== "inbound") {
-      return null;
-    }
-    const safeSubject = message.subject
-      .replace(/[^a-zA-Z0-9._ -]+/g, "")
-      .trim()
-      .slice(0, 100);
-    return {
-      r2Key: message.transport.rawR2Key,
-      filename: `${safeSubject || "message"}.eml`,
-      contentType: "message/rfc822",
-    };
+    return await ctx.runQuery(components.mail.objects.resolve, { object });
   },
 });
 

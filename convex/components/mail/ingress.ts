@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { mutation } from "./_generated/server";
 
 const body = v.object({
   content: v.string(),
@@ -15,7 +15,7 @@ const attachment = v.object({
   byteSize: v.number(),
 });
 
-export const begin = internalMutation({
+export const begin = mutation({
   args: {
     recipient: v.string(),
     ingressKey: v.string(),
@@ -69,7 +69,7 @@ export const begin = internalMutation({
   },
 });
 
-export const complete = internalMutation({
+export const complete = mutation({
   args: {
     recipient: v.string(),
     ingressKey: v.string(),

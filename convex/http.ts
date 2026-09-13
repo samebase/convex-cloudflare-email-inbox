@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { components } from "./_generated/api";
 import { auth } from "./auth";
 import {
   beginIngressRequest,
@@ -36,7 +36,7 @@ http.route({
     if (!parsed.success) {
       return json({ error: "invalid_request" }, 400);
     }
-    const result = await ctx.runMutation(internal.ingress.begin, {
+    const result = await ctx.runMutation(components.mail.ingress.begin, {
       recipient: parsed.data.recipient,
       ingressKey: parsed.data.ingressKey,
       envelopeFrom: parsed.data.envelopeFrom,
@@ -58,7 +58,7 @@ http.route({
     if (!parsed.success) {
       return json({ error: "invalid_request" }, 400);
     }
-    const result = await ctx.runMutation(internal.ingress.complete, {
+    const result = await ctx.runMutation(components.mail.ingress.complete, {
       recipient: parsed.data.recipient,
       ingressKey: parsed.data.ingressKey,
       parse: parsed.data.parse,

@@ -2,7 +2,7 @@
 
 import { convexTest, type TestConvex } from "convex-test";
 import { describe, expect, it } from "vite-plus/test";
-import { internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import schema from "./schema";
 
 const modules = import.meta.glob([
@@ -70,7 +70,7 @@ function completion(
 }
 
 async function reserve(t: TestConvex<typeof schema>, recipient: string, ingressKey: string) {
-  return await t.mutation(internal.ingress.begin, {
+  return await t.mutation(api.ingress.begin, {
     recipient,
     ingressKey,
     envelopeFrom: "sender@example.com",
@@ -95,15 +95,9 @@ describe("mail ingress", () => {
     const ingressKey = "b".repeat(64);
 
     await reserve(t, "inbox@json.md", ingressKey);
-    const first = await t.mutation(
-      internal.ingress.complete,
-      completion("inbox@json.md", ingressKey),
-    );
+    const first = await t.mutation(api.ingress.complete, completion("inbox@json.md", ingressKey));
     const secondReservation = await reserve(t, "inbox@json.md", ingressKey);
-    const second = await t.mutation(
-      internal.ingress.complete,
-      completion("inbox@json.md", ingressKey),
-    );
+    const second = await t.mutation(api.ingress.complete, completion("inbox@json.md", ingressKey));
 
     expect(first.kind).toBe("committed");
     expect(secondReservation).toEqual({ kind: "duplicate" });
@@ -124,15 +118,12 @@ describe("mail ingress", () => {
     const replyKey = "e".repeat(64);
 
     await reserve(t, "notes@json.md", firstKey);
-    const first = await t.mutation(
-      internal.ingress.complete,
-      completion("notes@json.md", firstKey),
-    );
+    const first = await t.mutation(api.ingress.complete, completion("notes@json.md", firstKey));
     await reserve(t, "notes@json.md", secondKey);
-    await t.mutation(internal.ingress.complete, completion("notes@json.md", secondKey));
+    await t.mutation(api.ingress.complete, completion("notes@json.md", secondKey));
     await reserve(t, "notes@json.md", replyKey);
     await t.mutation(
-      internal.ingress.complete,
+      api.ingress.complete,
       completion("notes@json.md", replyKey, {
         inReplyTo: `<${firstKey.slice(0, 12)}@example.com>`,
       }),
@@ -158,6 +149,6 @@ describe("mail ingress", () => {
       };
     });
     expect(result.threads).toHaveLength(2);
-    expect(result.reply?.threadId).toBe(result.firstMessage?.threadId);
+    expect(result.reply?.threadId).toBe(result.firstMessage.threadId);
   });
 });
