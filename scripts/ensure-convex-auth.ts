@@ -1,4 +1,4 @@
-// Samebase source build: v2059
+// Samebase source build: v2060
 /// <reference types="node" />
 import { spawn } from "node:child_process";
 import { generateKeyPairSync } from "node:crypto";

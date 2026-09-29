@@ -1,4 +1,4 @@
-// Samebase source build: v2059
+// Samebase source build: v2060
 import { describe, expect, it } from "vite-plus/test";
 
 import { selectCloudflareBuildPlan } from "./build-cloudflare.ts";

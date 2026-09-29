@@ -14,20 +14,22 @@ The repository owns the implementation under these names. Outside Workers Builds
 ## Build Variables
 
 `CONVEX_DEPLOY_KEY` is a build secret. The Convex CLI needs it before Wrangler uploads the Worker.
-Use one key name with a different value on each Workers Builds trigger:
+Use one key name with a different value in each Workers Builds scope:
 
-| Workers Builds trigger | Secret name         | Secret value                      |
-| ---------------------- | ------------------- | --------------------------------- |
-| Production             | `CONVEX_DEPLOY_KEY` | Convex production deploy key      |
-| Preview                | `CONVEX_DEPLOY_KEY` | Convex project Preview deploy key |
+| Workers Builds scope | Secret name         | Secret value                      |
+| -------------------- | ------------------- | --------------------------------- |
+| Production           | `CONVEX_DEPLOY_KEY` | Convex production deploy key      |
+| Previews Base        | `CONVEX_DEPLOY_KEY` | Convex project Preview deploy key |
 
 In the dashboard, put the production value under **Settings > Builds > Production**. Put the
 preview value under **Settings > Builds > Previews Base**. The **Previews Base** tab in the Builds
-section is the preview trigger's build configuration.
+section contains the shared build settings for Worker Previews.
 
-Samebase-managed setup writes each secret through its trigger API. It writes the readable
-`SAMEBASE_CONVEX_PROJECT` marker only to the production trigger. Samebase reads that marker to
-identify the Convex project declared by the Worker. The app does not read it.
+Samebase-managed setup writes the production key to Production build settings and the preview key
+to Previews Base build settings. It writes the readable `SAMEBASE_CONVEX_PROJECT` marker only to
+Production. Samebase reads that marker to identify the Convex project declared by the Worker.
+The app does not read it. The Worker Previews switch removes the old preview trigger, so do not
+use an old preview trigger ID to configure the new preview build settings.
 
 Do not add `VITE_CONVEX_URL`. Convex supplies the selected deployment URL to the frontend command
 that runs through `convex deploy --cmd`.
@@ -110,15 +112,16 @@ Convex deploy keys remain in the separate **Builds** settings described above.
 3. If the Worker uses the old preview model, open **Settings > Builds > Set up Worker Previews**.
    The switch cannot be reversed. Configure the preview runtime settings, then select **Switch to
    Worker Previews**. Restore the Preview command to `pnpm run deploy:preview` after the switch.
-4. Verify `pnpm run build` on both Builds triggers and `pnpm run deploy` on Production. Enable
-   Preview builds. Set the preview trigger's `CONVEX_DEPLOY_KEY` to the project Preview key before
-   starting a branch build. Keep the production key and `SAMEBASE_CONVEX_PROJECT` on Production.
+4. Verify `pnpm run build` in Production and Previews Base build settings and `pnpm run deploy`
+   on Production. Enable Preview builds. Set `CONVEX_DEPLOY_KEY` in Previews Base build settings
+   to the project Preview key before starting a branch build. Keep the production key and
+   `SAMEBASE_CONVEX_PROJECT` on Production.
 5. Run a branch build from the reviewed commit. Check the Worker Preview URL, its pull-request
    comment, and the branch's separate Convex deployment. Test authentication and an app data change.
 6. After approval to merge and deploy, merge the update and verify production.
-7. After both deployments pass, delete `PREVIEW_CONVEX_DEPLOY_KEY` from both Builds triggers.
-   Delete any `SAMEBASE_CONVEX_PROJECT` marker from the preview trigger. Samebase key rotation does
-   not delete these old values.
+7. After both deployments pass, delete any `PREVIEW_CONVEX_DEPLOY_KEY` left in Production or
+   Previews Base build settings. Delete any `SAMEBASE_CONVEX_PROJECT` marker from Previews Base
+   build settings. Samebase key rotation does not delete these old values.
 
 If the app already uses Worker Previews, verify its settings without repeating the one-time switch.
 
