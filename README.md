@@ -63,10 +63,12 @@ Add `--prod` for production.
 | `pnpm run check`          | Format, lint, type-check, and test the app            |
 | `pnpm run build`          | Run the complete Cloudflare build path                |
 | `pnpm run deploy:dry-run` | Build and validate a Worker upload without publishing |
-| `pnpm run deploy`         | Build and deploy the production Worker                |
+| `pnpm run deploy`         | Deploy the production Worker                          |
 
-Cloudflare Workers Builds deploys `main` to production. Other branches upload preview versions and
-use Convex preview deployments.
+Cloudflare Workers Builds deploys `main` to production. Native Worker Previews require separate
+runtime resources before they can be enabled for this mail app. The repository migration is
+incomplete until that isolation is configured. See
+[preview setup and provider migration](./docs/cloudflare-workers-builds.md#mail-preview-setup-is-incomplete).
 
 ## Mail delivery rules
 

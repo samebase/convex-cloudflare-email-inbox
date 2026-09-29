@@ -1,47 +1,50 @@
 # Cloudflare Workers Builds
 
-This app deploys through Cloudflare Workers Builds. The Cloudflare dashboard runs
-`pnpm run build`, then runs `pnpm run deploy` for the production branch or
-`pnpm run deploy:preview` for other branches.
+This app deploys through Cloudflare Workers Builds. The Cloudflare dashboard runs these stable
+repository commands:
+
+| Builds stage | Production branch | Other branches            |
+| ------------ | ----------------- | ------------------------- |
+| Build        | `pnpm run build`  | `pnpm run build`          |
+| Deploy       | `pnpm run deploy` | `pnpm run deploy:preview` |
+
+The repository owns the implementation under these names. Outside Workers Builds,
+`pnpm run build` runs only the app build.
 
 ## Build Variables
 
-Set these build secrets in the Cloudflare Workers Builds settings:
+`CONVEX_DEPLOY_KEY` is a build secret. The Convex CLI needs it before Wrangler uploads the Worker.
+Use one key name with a different value on each Workers Builds trigger:
 
-- `CONVEX_DEPLOY_KEY`
-- `PREVIEW_CONVEX_DEPLOY_KEY`
+| Workers Builds trigger | Secret name         | Secret value                      |
+| ---------------------- | ------------------- | --------------------------------- |
+| Production             | `CONVEX_DEPLOY_KEY` | Convex production deploy key      |
+| Preview                | `CONVEX_DEPLOY_KEY` | Convex project Preview deploy key |
+
+In the dashboard, put the production value under **Settings > Builds > Production**. Put the
+preview value under **Settings > Builds > Previews Base**. The **Previews Base** tab in the Builds
+section is the preview trigger's build configuration.
+
+Samebase-managed setup writes each secret through its trigger API. It writes the readable
+`SAMEBASE_CONVEX_PROJECT` marker only to the production trigger. Samebase reads that marker to
+identify the Convex project declared by the Worker. The app does not read it.
 
 Do not add `VITE_CONVEX_URL`. Convex supplies the selected deployment URL to the frontend command
 that runs through `convex deploy --cmd`.
 
-Cloudflare Workers Builds has separate production and preview build triggers
-under the hood, but the dashboard currently shows one build-variable table. To
-keep dashboard and API-created configurations equivalent, store both secrets on
-both triggers. This also keeps the production and preview keys visible in the
-dashboard. Keep this shared layout until Cloudflare exposes separate production
-and preview build-variable views.
+Do not add a Convex deploy key under **Runtime variables and secrets**. That section configures the
+running Worker. It does not provide variables to the Workers Builds process. Putting a deploy key
+there does not fix the build and exposes a deploy credential to Worker code.
 
-This template handles that dashboard limitation in `scripts/build-cloudflare.ts`:
-
-1. It reads `WORKERS_CI_BRANCH`.
-2. It selects `CONVEX_DEPLOY_KEY` when the branch is `main`.
-3. It selects `PREVIEW_CONVEX_DEPLOY_KEY` for every other branch.
-4. It passes only the selected value to the Convex deploy subprocess as
-   `CONVEX_DEPLOY_KEY`.
-
-That keeps the production key compatible with projects that do not use the
-preview-aware wrapper, while still requiring a separate preview key for
-non-production branches.
-
-When configuring through the Builds API, write the same two secrets to both
-triggers. When configuring through the dashboard, enter both secrets in its
-build-variable table. The script selects the correct key for each branch and
-keeps preview builds from falling back to the production key.
+Existing apps can still have `PREVIEW_CONVEX_DEPLOY_KEY` or a preview marker. The current scripts do
+not read those values, and Samebase does not remove them. Remove them manually after the migration
+checks below pass.
 
 ## Build Ordering
 
-Non-production builds pass `WORKERS_CI_BRANCH` to Convex as the stable preview
-name, so repeated commits reuse one preview deployment, URL, and data.
+Non-production builds pass `WORKERS_CI_BRANCH` to Convex as the stable preview name. The Convex
+deploy and every Convex Auth environment command use the same explicit preview name. Repeated
+commits reuse one preview deployment, URL, and data.
 
 Cloudflare may build more than one commit from the same branch concurrently.
 Stable naming does not order those builds: without another check, an older build
@@ -64,14 +67,81 @@ concurrency primitive.
 Local dry-runs can validate the Worker package without build secrets:
 
 ```sh
-CLOUDFLARE_WORKER_NAME=my-worker vp run deploy:dry-run
-CLOUDFLARE_WORKER_NAME=my-worker vp run deploy:preview:dry-run
+pnpm run deploy:dry-run
 ```
 
-If you set either deploy key locally, also set `WORKERS_CI_BRANCH` so the
-script can choose the intended deployment target.
+Worker Previews has no dry-run mode. To publish a local Preview, pass the actual Worker name:
+
+```sh
+pnpm run deploy:preview --worker-name my-worker
+```
+
+## Worker Previews
+
+`pnpm run deploy:preview` runs:
+
+```sh
+wrangler preview
+```
+
+Wrangler uses the Git branch as the Preview name. Its `--name` option selects the Preview name.
+In Workers Builds, Wrangler reads `WRANGLER_CI_OVERRIDE_NAME` to select the connected Worker. A
+local command uses `--worker-name`, so the reusable template needs no fixed Worker name.
+
+Worker Previews is a public open beta. New Workers Builds projects use it by default. The project
+dependency must be Wrangler `4.135.0` or later.
+
+The `previews` block in `wrangler.jsonc` is required. The starter uses `previews: {}` because static
+assets and compatibility settings stay at the top level. If you add runtime variables or bindings,
+put their preview values in `previews`. Use test resources for preview data. Copy any configuration
+generated by the dashboard into this block. Each deploy reads the current branch's configuration.
+
+Keep runtime secrets out of the file. Under **Runtime variables and secrets**, select **Previews
+Base** to set shared runtime secrets. Each new Preview receives those secrets. Later Base secret
+changes affect only new Previews, so update an existing Preview's secret separately when needed.
+Convex deploy keys remain in the separate **Builds** settings described above.
+
+## Migrate an existing app
+
+1. Apply the relevant starter changelog update on a branch. Keep `build`, `deploy`, and
+   `deploy:preview` as the public commands. Update Wrangler and the lockfile, add `previews`, and
+   replace the old Worker-name helper with the direct `wrangler preview` script.
+2. Run the repository checks and `pnpm run deploy:dry-run`. Open a pull request with the code change.
+3. If the Worker uses the old preview model, open **Settings > Builds > Set up Worker Previews**.
+   The switch cannot be reversed. Configure the preview runtime settings, then select **Switch to
+   Worker Previews**. Restore the Preview command to `pnpm run deploy:preview` after the switch.
+4. Verify `pnpm run build` on both Builds triggers and `pnpm run deploy` on Production. Enable
+   Preview builds. Set the preview trigger's `CONVEX_DEPLOY_KEY` to the project Preview key before
+   starting a branch build. Keep the production key and `SAMEBASE_CONVEX_PROJECT` on Production.
+5. Run a branch build from the reviewed commit. Check the Worker Preview URL, its pull-request
+   comment, and the branch's separate Convex deployment. Test authentication and an app data change.
+6. After approval to merge and deploy, merge the update and verify production.
+7. After both deployments pass, delete `PREVIEW_CONVEX_DEPLOY_KEY` from both Builds triggers.
+   Delete any `SAMEBASE_CONVEX_PROJECT` marker from the preview trigger. Samebase key rotation does
+   not delete these old values.
+
+If the app already uses Worker Previews, verify its settings without repeating the one-time switch.
 
 ## References
 
 - [Cloudflare Workers Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)
 - [Cloudflare Workers Builds API reference](https://developers.cloudflare.com/workers/ci-cd/builds/api-reference/)
+- [Cloudflare Worker Previews setup](https://developers.cloudflare.com/workers/previews/get-started/)
+- [Cloudflare Worker Previews configuration](https://developers.cloudflare.com/workers/previews/configuration/)
+- [Existing Workers Builds migration](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/#existing-workers-connected-to-builds)
+
+## Mail preview setup is incomplete
+
+The production Worker handles email and serves assets. Its runtime uses `CONVEX_SITE_URL`,
+`MAIL_STORAGE` (R2), `EMAIL`, `ASSETS`, `MAIL_BRIDGE_SECRET`, and `MAIL_RECOVERY_ADDRESS`.
+No isolated preview resources are recorded in this repository. The `previews` block is deliberately
+absent, so Wrangler rejects a non-interactive preview deployment before publication. It can read
+Previews Base after authentication; interactive use can offer to import that configuration after
+confirmation. This change is not ready for a live preview switch.
+
+Before adding that block, create or select separate test R2 storage, a test Convex deployment and
+site URL, and a restricted email test setup. Use the same binding names with the isolated values.
+Configure a separate bridge secret in the test Worker and Convex deployment. Use a verified test
+recovery address and test mail only. Do not copy the production bucket, backend URL, or secrets.
+Preserve the top-level production configuration. Then check inbound storage, file grants, recovery,
+and outbound delivery against the test resources before enabling provider preview builds.
