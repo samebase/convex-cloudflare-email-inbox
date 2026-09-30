@@ -66,10 +66,15 @@ Add `--prod` for production.
 | `pnpm run deploy`         | Deploy the production Worker                          |
 
 Cloudflare Workers Builds deploys `main` to production. The standard build scripts select the
-branch's Convex deployment and preserve existing auth keys. Native Worker Previews need isolated
-Mail runtime resources before live tests or merge. See
-[Mail preview requirements](./docs/cloudflare-workers-builds.md#mail-preview-runtime-is-incomplete)
-and the [Worker Previews migration guide](https://samebase.com/docs/cloudflare-previews-migration).
+branch's Convex deployment and preserve existing auth keys. For provider setup, use the
+[Worker Previews migration guide](https://samebase.com/docs/cloudflare-previews-migration).
+
+Mail previews remain blocked until `MAIL_STORAGE` uses a separate test R2 bucket and
+`CONVEX_SITE_URL` points to the branch's Convex preview. `EMAIL` needs restricted test delivery.
+The Worker and Convex preview need matching test `MAIL_BRIDGE_SECRET` values.
+`MAIL_RECOVERY_ADDRESS` needs a verified test destination. Convex also needs the preview
+`MAIL_WORKER_URL`, test `OWNER_EMAIL`, and test `OWNER_SETUP_SECRET` for first sign-up.
+Keep this PR draft until those settings use isolated resources. Do not reuse production mail or secrets.
 
 ## Mail delivery rules
 
