@@ -69,12 +69,14 @@ Cloudflare Workers Builds deploys `main` to production. The standard build scrip
 branch's Convex deployment and preserve existing auth keys. For provider setup, use the
 [Worker Previews migration guide](https://samebase.com/docs/cloudflare-previews-migration).
 
-Mail previews remain blocked until `MAIL_STORAGE` uses a separate test R2 bucket and
-`CONVEX_SITE_URL` points to the branch's Convex preview. `EMAIL` needs restricted test delivery.
-The Worker and Convex preview need matching test `MAIL_BRIDGE_SECRET` values.
-`MAIL_RECOVERY_ADDRESS` needs a verified test destination. Convex also needs the preview
-`MAIL_WORKER_URL`, test `OWNER_EMAIL`, and test `OWNER_SETUP_SECRET` for first sign-up.
-Keep this PR draft until those settings use isolated resources. Do not reuse production mail or secrets.
+Mail previews use the `samebase-mail-previews` R2 bucket. The preview deploy command sets
+`CONVEX_SITE_URL` to the Convex URL from that branch's build. Production mail storage and
+email routing stay unchanged.
+
+Previews Base holds test runtime settings. The Worker and Convex preview need matching test
+`MAIL_BRIDGE_SECRET` values. Convex also needs the preview `MAIL_WORKER_URL`, test `OWNER_EMAIL`,
+and test `OWNER_SETUP_SECRET` for first sign-up. Restrict the `EMAIL` binding to a verified test
+recipient. Do not reuse production secrets or route the live inbox to a preview.
 
 ## Mail delivery rules
 
