@@ -1,7 +1,11 @@
-# Samebase Mail
+# Convex Cloudflare Email Inbox
 
-Samebase Mail is a private mail desk for multiple addresses on domains that you own. The first
-deployment accepts `inbox@json.md` and `notes@json.md`. The owner can create more `json.md`
+Cloudflare email inboxes for Convex, with inboxes, threads, attachments, and delivery history.
+The package name is `@samebase/convex-cloudflare-email-inbox`.
+
+This repository contains the Convex mail component and its reference app, Mail. Mail is a private
+mail desk for multiple addresses on domains that you own. The first deployment accepts
+`inbox@json.md` and `notes@json.md`. The owner can create more `json.md`
 addresses in the app.
 
 The app has no AI agent, MCP server, template system, or public account flow.

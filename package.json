@@ -1,8 +1,19 @@
 {
-  "name": "samebase-mail",
+  "name": "@samebase/convex-cloudflare-email-inbox",
   "version": "0.0.0",
   "private": true,
+  "description": "Cloudflare email inboxes for Convex, with a private Mail reference app.",
+  "keywords": [
+    "cloudflare",
+    "convex",
+    "email",
+    "inbox"
+  ],
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samebase/convex-cloudflare-email-inbox.git"
+  },
   "type": "module",
   "imports": {
     "#components/*": "./src/components/*.tsx",
