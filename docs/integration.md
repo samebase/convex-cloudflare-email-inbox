@@ -10,7 +10,8 @@ verification, release conditions, and questions for reviewers.
 
 The component owns message history, delivery state, request deduplication, and Cloudflare transport.
 Applications own recipient selection, message composition, authorization, and retention policy.
-Mail keeps its inbound Worker and R2 bucket. Sending-only Samebase does not add either.
+Mail uses the package's receiving Worker helpers with its R2 bucket. Sending-only Samebase does not
+add either. The package reads Worker configuration only when sending R2 attachments.
 
 ## Develop across repositories
 
@@ -55,8 +56,10 @@ an npm package must not create a new data namespace. New sender names and accept
 results are optional for existing records. Old accepted messages remain readable and are never resent.
 
 Samebase preserves its deployment prefix and local credential skip behavior. Signup schedules its
-notification after the user transaction. Feedback waits for acceptance and rejects bounced or
-suppressed recipients. Account deletion sends once, records failure when needed, and still finalizes.
+notification after the user transaction. Feedback reports acceptance, rejects bounced or suppressed
+recipients, and reports queued delivery after confirmed throttling without asking for resubmission.
+Account deletion records unconfirmed delivery when needed and still finalizes. The component retries
+confirmed HTTP 429 responses only, at most three provider attempts. Uncertain outcomes do not retry.
 Samebase's internal notification history survives user-account scrubbing, as documented in its
 privacy policy and deletion spec. No public history endpoint is added.
 

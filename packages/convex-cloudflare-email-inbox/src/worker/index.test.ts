@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { completeIngressRequest } from "@samebase/convex-cloudflare-email-inbox/protocol";
-import { receiveEmail } from "./inbound";
+import { completeIngressRequest } from "../component/mailProtocol.js";
+import { downloadObject, receiveEmail } from "./index.js";
+import { createObjectGrant } from "../r2.js";
 
 function rawStream(value: string) {
   return new ReadableStream<Uint8Array>({
@@ -245,5 +246,34 @@ describe("email ingress Worker", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fixture.rejection()).toBe("");
+  });
+});
+
+describe("private R2 downloads", () => {
+  it("streams only the object named by a valid signed grant", async () => {
+    const grant = await createObjectGrant(
+      {
+        expiresAt: Date.now() + 60_000,
+        r2Key: "mail/outbound/digest/receipt.txt",
+        filename: "receipt.txt",
+        contentType: "text/plain",
+      },
+      "test-secret",
+    );
+    const get = vi.fn(async () => ({ body: rawStream("paid") }));
+    const env = { MAIL_BRIDGE_SECRET: "test-secret", MAIL_STORAGE: { get } };
+    const valid = await downloadObject(
+      new Request(`https://mail.example/api/mail/object?grant=${encodeURIComponent(grant)}`),
+      env,
+    );
+    expect(await valid.text()).toBe("paid");
+    expect(valid.headers.get("content-disposition")).toContain("receipt.txt");
+    expect(valid.headers.get("cache-control")).toBe("private, no-store");
+    const invalid = await downloadObject(
+      new Request(`https://mail.example/api/mail/object?grant=${encodeURIComponent(`${grant}x`)}`),
+      env,
+    );
+    expect(invalid.status).toBe(404);
+    expect(get).toHaveBeenCalledExactlyOnceWith("mail/outbound/digest/receipt.txt");
   });
 });

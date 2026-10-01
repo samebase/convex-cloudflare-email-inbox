@@ -55,7 +55,6 @@
     "convex": "^1.45.0",
     "convex-helpers": "0.1.124",
     "lucide-react": "^1.14.0",
-    "postal-mime": "^3.0.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

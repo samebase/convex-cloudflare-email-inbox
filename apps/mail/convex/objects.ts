@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import { action, internalQuery } from "./_generated/server";
-import { createObjectGrant } from "../shared/objectGrant";
+import { createObjectGrant } from "@samebase/convex-cloudflare-email-inbox/r2";
 
 const objectReference = v.union(
   v.object({ kind: v.literal("raw"), messageId: v.string() }),

@@ -1,9 +1,11 @@
 import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
-import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox";
+import { EmailInbox, replyOptions, sendOptions } from "@samebase/convex-cloudflare-email-inbox";
 import { components } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { requireOwner } from "./access";
+
+const email = new EmailInbox(components.mail);
 
 const threadSummary = v.object({
   _id: v.string(),
@@ -26,6 +28,8 @@ const attachmentView = v.object({
 
 const messageView = v.object({
   _id: v.string(),
+  inboxId: v.string(),
+  threadId: v.string(),
   direction: v.union(v.literal("inbound"), v.literal("outbound")),
   status: v.union(
     v.literal("received"),
@@ -38,13 +42,16 @@ const messageView = v.object({
   ),
   from: v.string(),
   replyTo: v.union(v.string(), v.null()),
+  replyRecipient: v.union(v.string(), v.null()),
   to: v.array(v.string()),
   cc: v.array(v.string()),
+  bcc: v.array(v.string()),
   subject: v.string(),
   occurredAt: v.number(),
   rfcMessageId: v.union(v.string(), v.null()),
   references: v.array(v.string()),
   bodyText: v.string(),
+  bodyHtml: v.union(v.string(), v.null()),
   bodyTruncated: v.boolean(),
   rawAvailable: v.boolean(),
   attachments: v.array(attachmentView),
@@ -58,7 +65,7 @@ export const listThreads = query({
   returns: paginationResultValidator(threadSummary),
   handler: async (ctx, { inboxId, paginationOpts }) => {
     await requireOwner(ctx);
-    return await ctx.runQuery(components.mail.mail.listThreads, {
+    return await email.listThreads(ctx, {
       inboxId,
       paginationOpts,
     });
@@ -73,7 +80,7 @@ export const listMessages = query({
   returns: paginationResultValidator(messageView),
   handler: async (ctx, { threadId, paginationOpts }) => {
     await requireOwner(ctx);
-    return await ctx.runQuery(components.mail.mail.listMessages, {
+    return await email.listMessages(ctx, {
       threadId,
       paginationOpts,
     });
@@ -94,7 +101,7 @@ export const getThread = query({
   ),
   handler: async (ctx, { threadId }) => {
     await requireOwner(ctx);
-    return await ctx.runQuery(components.mail.mail.getThread, { threadId });
+    return await email.getThread(ctx, { threadId });
   },
 });
 
@@ -103,35 +110,24 @@ export const markThreadRead = mutation({
   returns: v.null(),
   handler: async (ctx, { threadId }) => {
     await requireOwner(ctx);
-    return await ctx.runMutation(components.mail.mail.markThreadRead, { threadId });
+    return await email.markThreadRead(ctx, { threadId });
   },
 });
 
 export const queueSend = mutation({
-  args: {
-    inboxId: v.string(),
-    threadId: v.union(v.string(), v.null()),
-    clientRequestId: v.string(),
-    to: v.array(v.string()),
-    cc: v.array(v.string()),
-    subject: v.string(),
-    text: v.string(),
-    inReplyTo: v.union(v.string(), v.null()),
-    references: v.array(v.string()),
-  },
+  args: sendOptions,
   returns: v.string(),
   handler: async (ctx, args) => {
     await requireOwner(ctx);
-    return await new EmailInbox(components.mail).enqueue(ctx, {
-      inboxId: args.inboxId,
-      threadId: args.threadId,
-      clientRequestId: args.clientRequestId,
-      to: args.to,
-      cc: args.cc,
-      subject: args.subject,
-      text: args.text,
-      inReplyTo: args.inReplyTo,
-      references: args.references,
-    });
+    return await email.enqueue(ctx, args);
+  },
+});
+
+export const reply = mutation({
+  args: replyOptions,
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    await requireOwner(ctx);
+    return await email.reply(ctx, args);
   },
 });

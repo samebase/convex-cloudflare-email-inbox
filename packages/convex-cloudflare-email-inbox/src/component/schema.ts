@@ -14,16 +14,16 @@ export const recipientResults = v.object({
   delivered: v.array(v.string()),
   queued: v.array(v.string()),
   permanent_bounces: v.array(v.string()),
-  suppressed_recipients: v.array(v.string()),
+  suppressed_recipients: v.optional(v.array(v.string())),
 });
 
 export const deliveryState = v.union(
-  v.object({ kind: v.literal("queued"), queuedAt: v.number() }),
+  v.object({ kind: v.literal("queued"), queuedAt: v.number(), notBefore: v.optional(v.number()) }),
   v.object({ kind: v.literal("sending"), startedAt: v.number() }),
   v.object({
     kind: v.literal("accepted"),
     acceptedAt: v.number(),
-    providerMessageId: v.string(),
+    providerMessageId: v.optional(v.string()),
     recipientResults: v.optional(recipientResults),
   }),
   v.object({ kind: v.literal("rejected"), failedAt: v.number(), code: v.string() }),
@@ -42,6 +42,7 @@ export const messageTransport = v.union(
   v.object({
     kind: v.literal("outbound"),
     clientRequestId: v.string(),
+    attempt: v.optional(v.number()),
     delivery: deliveryState,
   }),
 );
@@ -92,8 +93,10 @@ export default defineSchema({
     replyToAddress: v.optional(v.string()),
     headerTo: v.array(v.string()),
     headerCc: v.array(v.string()),
+    headerBcc: v.optional(v.array(v.string())),
     rfcMessageId: v.optional(v.string()),
     inReplyTo: v.optional(v.string()),
+    replyToMessageId: v.optional(v.id("emailMessages")),
     references: v.array(v.string()),
     subject: v.string(),
     snippet: v.string(),
@@ -107,6 +110,7 @@ export default defineSchema({
   emailBodies: defineTable({
     messageId: v.id("emailMessages"),
     content: v.string(),
+    html: v.optional(v.string()),
     originalByteCount: v.number(),
     truncated: v.boolean(),
   }).index("by_message", ["messageId"]),
@@ -117,5 +121,6 @@ export default defineSchema({
     originalFilename: v.string(),
     mimeType: v.string(),
     byteSize: v.number(),
+    sha256: v.optional(v.string()),
   }).index("by_message_and_ordinal", ["messageId", "ordinal"]),
 });

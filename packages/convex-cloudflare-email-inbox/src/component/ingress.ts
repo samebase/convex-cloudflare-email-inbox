@@ -1,5 +1,8 @@
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import type { FunctionHandle } from "convex/server";
+import { internalAction, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { MessageReceivedEvent } from "../client/receiving.js";
 
 const body = v.object({
   content: v.string(),
@@ -89,6 +92,7 @@ export const complete = mutation({
     occurredAt: v.number(),
     bodies: v.array(body),
     attachments: v.array(attachment),
+    onMessageReceived: v.optional(v.string()),
   },
   returns: v.union(
     v.object({ kind: v.literal("committed"), messageId: v.id("emailMessages") }),
@@ -194,6 +198,34 @@ export const complete = mutation({
     await ctx.db.patch(receipt._id, {
       state: { kind: "committed", messageId, committedAt: Date.now() },
     });
+    if (args.onMessageReceived) {
+      await ctx.scheduler.runAfter(0, internal.ingress.dispatchReceived, {
+        onMessageReceived: args.onMessageReceived,
+        messageId,
+        inboxId: inbox._id,
+        threadId,
+      });
+    }
     return { kind: "committed" as const, messageId };
+  },
+});
+
+export const dispatchReceived = internalAction({
+  args: {
+    onMessageReceived: v.string(),
+    messageId: v.id("emailMessages"),
+    inboxId: v.id("inboxes"),
+    threadId: v.id("emailThreads"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // @ts-expect-error createFunctionHandle produces the stored string; Convex resolves it at execution.
+    const callback: FunctionHandle<"action", MessageReceivedEvent, null> = args.onMessageReceived;
+    await ctx.runAction(callback, {
+      messageId: args.messageId,
+      inboxId: args.inboxId,
+      threadId: args.threadId,
+    });
+    return null;
   },
 });

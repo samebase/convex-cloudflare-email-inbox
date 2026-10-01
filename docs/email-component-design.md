@@ -2,6 +2,13 @@
 
 Updated October 1, 2026. This is a working design note for cross-agent review, not a release announcement.
 
+The [Convex email component audit](./convex-email-components-review.md) compares all 17 email-search
+results from the directory screenshot and four additional related packages. It supersedes any
+assumption that queueing, status tracking, or an inbox alone distinguishes this package. Our useful
+contribution is the combination of direct Cloudflare sending/receiving, unified Convex inbox/thread
+history, and raw mail in the consumer's R2 bucket. Receiving still needs a supported package-facing
+adapter and inbox client interface before we can advertise that as a turnkey installation.
+
 ## Direction
 
 The goal is one reusable Cloudflare email implementation for Samebase apps. Mail is the first inbox
@@ -12,7 +19,9 @@ The repository is `samebase/convex-cloudflare-email-inbox`. Its package is
 `@samebase/convex-cloudflare-email-inbox`, under `packages/convex-cloudflare-email-inbox`. The private
 Mail reference app lives in `apps/mail` and also provides a starting point for other mail apps.
 The root owns shared tooling, workspace commands, and documentation. Extracting a package does not
-require making the repository public.
+require making the repository public. Listing it in the Convex component directory does require
+public source and a published npm package. Public release needs an explicit source review and
+authorization to change repository visibility; this research does not change it.
 
 The app depends on the component through `workspace:*`. Other repositories install the published
 package. Folder names do not change its import name or the installed Convex component name `mail`.
@@ -68,8 +77,8 @@ The relevant upstream sources are its
 [delivery action](https://github.com/PanaraStudios/opensend.cc/blob/db16b71fd76998df17f52d016371c2c04610ff22/convex/emailSend.ts), and
 [recipient-event projection](https://github.com/PanaraStudios/opensend.cc/blob/db16b71fd76998df17f52d016371c2c04610ff22/convex/ses/projection.ts).
 
-OpenSend's HTTP send response means queued, not delivered. We must not copy that meaning into
-Samebase's synchronous feedback flow, which currently waits for a provider receipt. See its
+OpenSend's HTTP send response means queued, not delivered. Samebase must distinguish a pending
+send from a provider receipt. It now reports confirmed throttling as queued. See OpenSend's
 [sending guide](https://opensend.cc/docs/dashboard/emails/sending).
 
 ## Developer interface
@@ -79,17 +88,25 @@ The default inbox is created idempotently. An explicit `inboxId` selects an exis
 
 `send(ctx, options)` runs from an action. It records the message, claims one provider attempt, and
 returns `{ messageId, ...deliveryState }`. `messageId` identifies the stored component message.
-An accepted result also contains Cloudflare's separate `providerMessageId` and recipient results.
+An accepted result contains recipient results and Cloudflare's separate `providerMessageId` when supplied.
 
 `enqueue(ctx, options)` runs from a mutation. It records the message and schedules sending in the
 same transaction, then returns `messageId`. Queue acceptance does not mean provider acceptance.
 
-Both calls require a stable `clientRequestId`. A repeated identical request returns the original
+Both calls require a stable public `idempotencyKey`, backed by the existing stored `clientRequestId`.
+A repeated identical request returns the original
 record. A repeated ID with different normalized content fails. An in-flight replay can return
 `sending`; it does not start another provider call or promise to wait for the first caller.
+Confirmed HTTP 429 responses return `queued` and schedule at most three total attempts. Each
+attempt is fenced from stale callbacks. HTTP 408 and other uncertain outcomes remain `unknown`.
+
+The client now supplies inbox creation/listing, message/thread reads, delivery reads, read state,
+and `reply` using a parent message ID. It supports HTML, Bcc, Reply-To, and stable R2 attachment
+descriptors. The [package guide](../packages/convex-cloudflare-email-inbox/README.md) is the current
+contract. No Email SDK dependency was added.
 
 The component stores `queued`, `sending`, `accepted`, `rejected`, and `unknown` delivery states.
-Accepted results retain `delivered`, `queued`, `permanent_bounces`, and `suppressed_recipients`.
+Accepted results retain `delivered`, `queued`, and `permanent_bounces`, plus `suppressed_recipients` when supplied.
 Applications interpret those groups for their own notification requirements.
 
 A watchdog marks interrupted attempts `unknown`. A late conclusive receipt can still settle an
@@ -122,8 +139,9 @@ The component owns inbox and message records, request deduplication, delivery st
 transport. Apps own message composition, recipient selection, access control, and retention policy.
 
 Samebase's sending-only integration uses `notifications@samebase.com`. It does not add a Worker or
-R2 bucket. Mail retains its inbound email Worker and R2 storage for complete `.eml` files and named
-attachments. Inbound routing and object signing remain app-owned.
+R2 bucket. Mail retains its inbound email Worker and R2 bucket for complete `.eml` files and named
+attachments. Receiving, authenticated ingress, object signing, and file download helpers now live
+in the package. Apps mount them and own Cloudflare routing, credentials, and access policy.
 
 The official Cloudflare SDK is an internal dependency. A separate generic Cloudflare API package
 is deferred until another real consumer establishes what that package should own. The selective
@@ -137,7 +155,7 @@ and indexes. New receipt fields are optional for older rows. Extraction is not a
 The package extraction, Cloudflare sender, Mail migration, and locally linked Samebase integration
 are implemented in working branches. They are not a published or deployed release.
 
-The monorepo build passed, including formatting, lint, type checks, and 60 workspace tests. A fresh packed
+The initial monorepo build passed, including formatting, lint, type checks, and 60 workspace tests. A fresh packed
 consumer also passed strict type checks and a mocked send through the package exports without the
 authoring workspace's dependency patch. Samebase's focused notification tests and full application
 type check passed. A local Convex backend accepted the component and its history queries.
@@ -149,6 +167,9 @@ this integration. The message-ID refinement passed a fresh packed-consumer check
 history lookup and identical-request replay. Samebase's full application type check also passed
 against the refined client.
 
+The October 2 API and receiving work is recorded in [the implementation checklist](./email-api-implementation.md).
+That file contains the current verification results and consumer changes.
+
 The package's npm login is currently unauthorized. Samebase uses a temporary absolute local link
 for development. That link must not be committed. A portable release dependency and lockfile remain
 required before the Samebase integration can ship.
@@ -156,13 +177,14 @@ required before the Samebase integration can ship.
 ## Remaining work and release conditions
 
 1. Checkpoint and review the package and Mail changes in the existing extraction PR.
-2. Resolve npm publishing access and publish the reviewed package version. Replace Samebase's
+2. Verify a controlled live send and retained receipt before publication. Resolve npm publishing
+   access and publish the reviewed package version. Replace Samebase's
    temporary link with that exact version and regenerate its lockfile.
-3. Finish the Samebase integration PR, keeping signup, feedback, and deletion behavior unchanged
-   apart from the shared transport and retained history.
+3. Finish the Samebase integration PR. Feedback now distinguishes queued delivery; account deletion
+   still finalizes when acceptance is not confirmed. Preserve these tested outcomes.
 4. Before Mail cutover, drain old scheduled sends and confirm the new sending credentials are set.
    Pending jobs targeting the deleted host action cannot execute after that action disappears.
-5. Verify a controlled live send and history receipt before claiming operational completion.
+5. Verify both consumers after cutover before claiming operational completion.
 
 The production Cloudflare build command is already held pending the extraction PR. Keep that hold
 until the reviewed rollout is ready. Do not deploy the old app schema over component data.
@@ -172,11 +194,10 @@ The local development and cutover details are in [the integration guide](./integ
 
 These questions invite review. They are not blockers that require the owner to answer first.
 
-- Does `send` returning a local ID alongside its delivery discriminant give callers enough history
-  access, or does the first real consumer justify a small client retrieval method?
+- Do the client history methods expose the information an app needs without bypassing its authorization?
 - Is every producer using `mail.queueSend`, with no app-specific direct-provider path left behind?
 - Do concurrent replay, provider ambiguity, watchdog expiry, and late receipts all preserve the
-  one-attempt contract?
+  exclusive-attempt and no-ambiguous-retry contracts?
 - Do the component move and rollout preserve existing data and avoid stranded scheduled jobs?
 - Can Samebase's trusted operators inspect retained notification history without adding a public
   mail endpoint? Does the documented retention exception match the implemented account scrub?

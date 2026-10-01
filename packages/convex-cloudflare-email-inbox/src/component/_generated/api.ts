@@ -15,7 +15,10 @@ import type * as inboxes from "../inboxes.js";
 import type * as ingress from "../ingress.js";
 import type * as mail from "../mail.js";
 import type * as mailProtocol from "../mailProtocol.js";
+import type * as messageTypes from "../messageTypes.js";
 import type * as objects from "../objects.js";
+import type * as outboundAttachments from "../outboundAttachments.js";
+import type * as text from "../text.js";
 
 import type {
   ApiFromModules,
@@ -32,7 +35,10 @@ const fullApi: ApiFromModules<{
   ingress: typeof ingress;
   mail: typeof mail;
   mailProtocol: typeof mailProtocol;
+  messageTypes: typeof messageTypes;
   objects: typeof objects;
+  outboundAttachments: typeof outboundAttachments;
+  text: typeof text;
 }> = anyApi as any;
 
 /**

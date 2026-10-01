@@ -36,59 +36,21 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
       >;
     };
     delivery: {
-      claim: FunctionReference<
-        "mutation",
-        "internal",
-        { messageId: string },
-        null | {
-          cc: Array<string>;
-          from: string;
-          inReplyTo: string | null;
-          references: Array<string>;
-          senderName?: string;
-          subject: string;
-          text: string;
-          to: Array<string>;
-        },
-        Name
-      >;
-      finish: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          messageId: string;
-          outcome:
-            | {
-                kind: "accepted";
-                providerMessageId: string;
-                recipientResults?: {
-                  delivered: Array<string>;
-                  permanent_bounces: Array<string>;
-                  queued: Array<string>;
-                  suppressed_recipients: Array<string>;
-                };
-              }
-            | { code: string; kind: "rejected" }
-            | { kind: "unknown" };
-        },
-        null,
-        Name
-      >;
       get: FunctionReference<
         "query",
         "internal",
         { messageId: string },
-        | { kind: "queued"; queuedAt: number }
+        | { kind: "queued"; notBefore?: number; queuedAt: number }
         | { kind: "sending"; startedAt: number }
         | {
             acceptedAt: number;
             kind: "accepted";
-            providerMessageId: string;
+            providerMessageId?: string;
             recipientResults?: {
               delivered: Array<string>;
               permanent_bounces: Array<string>;
               queued: Array<string>;
-              suppressed_recipients: Array<string>;
+              suppressed_recipients?: Array<string>;
             };
           }
         | { code: string; failedAt: number; kind: "rejected" }
@@ -99,17 +61,17 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         "action",
         "internal",
         { messageId: string },
-        | { kind: "queued"; queuedAt: number }
+        | { kind: "queued"; notBefore?: number; queuedAt: number }
         | { kind: "sending"; startedAt: number }
         | {
             acceptedAt: number;
             kind: "accepted";
-            providerMessageId: string;
+            providerMessageId?: string;
             recipientResults?: {
               delivered: Array<string>;
               permanent_bounces: Array<string>;
               queued: Array<string>;
-              suppressed_recipients: Array<string>;
+              suppressed_recipients?: Array<string>;
             };
           }
         | { code: string; failedAt: number; kind: "rejected" }
@@ -177,6 +139,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           inReplyTo: string | null;
           ingressKey: string;
           occurredAt: number;
+          onMessageReceived?: string;
           parse: { kind: "parsed" } | { code: string; kind: "failed" };
           recipient: string;
           references: Array<string>;
@@ -191,6 +154,46 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
       >;
     };
     mail: {
+      getMessage: FunctionReference<
+        "query",
+        "internal",
+        { messageId: string },
+        null | {
+          _id: string;
+          attachments: Array<{
+            _id: string;
+            byteSize: number;
+            filename: string;
+            mimeType: string;
+          }>;
+          bcc: Array<string>;
+          bodyHtml: string | null;
+          bodyText: string;
+          bodyTruncated: boolean;
+          cc: Array<string>;
+          direction: "inbound" | "outbound";
+          from: string;
+          inboxId: string;
+          occurredAt: number;
+          rawAvailable: boolean;
+          references: Array<string>;
+          replyRecipient: string | null;
+          replyTo: string | null;
+          rfcMessageId: string | null;
+          status:
+            | "received"
+            | "queued"
+            | "sending"
+            | "accepted"
+            | "rejected"
+            | "unknown"
+            | "parse_failed";
+          subject: string;
+          threadId: string;
+          to: Array<string>;
+        },
+        Name
+      >;
       getThread: FunctionReference<
         "query",
         "internal",
@@ -229,14 +232,18 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               filename: string;
               mimeType: string;
             }>;
+            bcc: Array<string>;
+            bodyHtml: string | null;
             bodyText: string;
             bodyTruncated: boolean;
             cc: Array<string>;
             direction: "inbound" | "outbound";
             from: string;
+            inboxId: string;
             occurredAt: number;
             rawAvailable: boolean;
             references: Array<string>;
+            replyRecipient: string | null;
             replyTo: string | null;
             rfcMessageId: string | null;
             status:
@@ -248,6 +255,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               | "unknown"
               | "parse_failed";
             subject: string;
+            threadId: string;
             to: Array<string>;
           }>;
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;
@@ -295,15 +303,51 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         null,
         Name
       >;
+      queueReply: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          attachments?: Array<{
+            byteSize: number;
+            contentType: string;
+            filename: string;
+            r2Key: string;
+            sha256: string;
+          }>;
+          bcc?: Array<string>;
+          cc?: Array<string>;
+          html?: string;
+          idempotencyKey: string;
+          messageId: string;
+          replyTo?: string;
+          subject?: string;
+          text?: string;
+          to?: Array<string>;
+        },
+        string,
+        Name
+      >;
       queueSend: FunctionReference<
         "mutation",
         "internal",
         {
+          attachments?: Array<{
+            byteSize: number;
+            contentType: string;
+            filename: string;
+            r2Key: string;
+            sha256: string;
+          }>;
+          bcc?: Array<string>;
           cc: Array<string>;
           clientRequestId: string;
+          from?: string;
+          html?: string;
           inReplyTo: string | null;
-          inboxId: string;
+          inboxId?: string;
           references: Array<string>;
+          replyTo?: string;
+          replyToMessageId?: string;
           senderName?: string;
           subject: string;
           text: string;

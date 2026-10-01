@@ -160,7 +160,7 @@ export function MailWorkspace() {
               thread={thread}
               messages={messages}
               canLoadMore={messageStatus === "CanLoadMore" || messageStatus === "LoadingMore"}
-              canReply={Boolean(messages[0]?.replyTo)}
+              canReply={Boolean(messages[0]?.replyRecipient)}
               isLoadingMore={messageStatus === "LoadingMore"}
               onLoadMore={() => loadMoreMessages(10)}
               onReply={() => setComposeTarget({ kind: "reply", threadId: thread._id })}
@@ -495,7 +495,8 @@ function ComposePane({
   onSent: () => void;
 }) {
   const queueSend = useMutation(api.mail.queueSend);
-  const [to, setTo] = useState(latestMessage?.replyTo ?? "");
+  const queueReply = useMutation(api.mail.reply);
+  const [to, setTo] = useState(latestMessage?.replyRecipient ?? "");
   const [subject, setSubject] = useState(
     thread
       ? thread.subject.toLowerCase().startsWith("re:")
@@ -504,7 +505,7 @@ function ComposePane({
       : "",
   );
   const [body, setBody] = useState("");
-  const [clientRequestId] = useState(() => crypto.randomUUID());
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -520,19 +521,18 @@ function ComposePane({
     setError("");
     setIsPending(true);
     try {
-      await queueSend({
-        inboxId,
-        threadId: thread?._id ?? null,
-        clientRequestId,
+      const content = {
+        idempotencyKey,
         to: recipients,
         cc: [],
         subject,
         text: body,
-        inReplyTo: latestMessage?.rfcMessageId ?? null,
-        references: latestMessage?.rfcMessageId
-          ? [...latestMessage.references, latestMessage.rfcMessageId].slice(-20)
-          : (latestMessage?.references ?? []),
-      });
+      };
+      if (latestMessage) {
+        await queueReply({ ...content, messageId: latestMessage._id });
+      } else {
+        await queueSend({ ...content, inboxId });
+      }
       onSent();
     } catch (sendError: unknown) {
       setError(sendError instanceof Error ? sendError.message : "Could not send message");

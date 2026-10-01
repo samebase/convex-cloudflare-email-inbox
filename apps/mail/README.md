@@ -15,11 +15,11 @@ The app has no AI agent, MCP server, template system, or public account flow.
   message metadata, readable bodies, and outbound delivery state. It sends through Cloudflare REST.
 - Convex Auth allows one owner email. First sign-up also needs a one-time setup code.
 
-The app keeps owner authentication, Cloudflare Email Routing, and R2 access in
-thin adapters outside the component. The component owns the reusable mail schema and business
+The app keeps owner authentication and Cloudflare Email Routing in thin adapters. It mounts the
+package's receiving and signed R2 download helpers. The component owns the reusable mail schema and business
 logic. This boundary lets another Convex app install the mail backend without taking the current
 app shell or Cloudflare configuration. See the [package README](../../packages/convex-cloudflare-email-inbox/README.md) for
-installation and the sending-only API.
+installation, sending, receiving, and inbox methods.
 
 The Worker routes mail by the SMTP envelope recipient. This also handles BCC mail. Before it writes
 to R2, it reserves `(inbox, SHA-256 of raw message)` in Convex. A repeated delivery uses the same R2
@@ -98,6 +98,7 @@ route the live inbox to a preview.
 - Threads join only through `References` or `In-Reply-To`. Equal subjects stay separate.
 - An outbound timeout becomes `unknown` and does not retry automatically. This prevents duplicate
   email when the provider accepted a send but its response was lost.
+- Confirmed HTTP 429 throttling schedules at most three attempts and respects `Retry-After`.
 - The reading pane loads the latest 10 messages in a thread to keep Convex responses bounded.
 - The app displays plain text. It does not render untrusted HTML.
 

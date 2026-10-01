@@ -1,7 +1,9 @@
 /// <reference types="vite/client" />
 
 import { convexTest, type TestConvex } from "convex-test";
-import { describe, expect, it } from "vite-plus/test";
+import { createFunctionHandle, internalActionGeneric, makeFunctionReference } from "convex/server";
+import { v } from "convex/values";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { api } from "./_generated/api";
 import schema from "./schema";
 
@@ -11,6 +13,11 @@ const modules = import.meta.glob([
   "!./**/*.test.ts",
   "!./**/*.convex.test.ts",
 ]);
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 async function createInbox(t: TestConvex<typeof schema>, localPart: string) {
   return await t.run(async (ctx) => {
@@ -80,6 +87,62 @@ async function reserve(t: TestConvex<typeof schema>, recipient: string, ingressK
 }
 
 describe("mail ingress", () => {
+  it.each(["success", "failed", "removed"])(
+    "commits once and schedules one callback with callback state: %s",
+    async (state) => {
+      vi.useFakeTimers();
+      const received = vi.fn();
+      const callback = internalActionGeneric({
+        args: { messageId: v.string(), inboxId: v.string(), threadId: v.string() },
+        returns: v.null(),
+        handler: async (_ctx, event) => {
+          received(event);
+          if (state === "failed") throw new Error("Callback failed");
+          return null;
+        },
+      });
+      const t = convexTest(schema, {
+        ...modules,
+        "./hooks.ts": async () => ({ received: callback }),
+      });
+      const inboxId = await createInbox(t, "inbox");
+      const onMessageReceived = await t.run(
+        async () =>
+          await createFunctionHandle(
+            makeFunctionReference<
+              "action",
+              { messageId: string; inboxId: string; threadId: string },
+              null
+            >(state === "removed" ? "hooks:removed" : "hooks:received"),
+          ),
+      );
+      const ingressKey = "f".repeat(64);
+      await reserve(t, "inbox@json.md", ingressKey);
+      const request = { ...completion("inbox@json.md", ingressKey), onMessageReceived };
+      const first = await t.mutation(api.ingress.complete, request);
+      expect(await t.mutation(api.ingress.complete, request)).toEqual({
+        kind: "duplicate",
+        messageId: first.messageId,
+      });
+      expect(received).not.toHaveBeenCalled();
+      const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      await t.finishAllScheduledFunctions(vi.runAllTimers);
+      const message = await t.run(async (ctx) => await ctx.db.get(first.messageId));
+      expect(message).not.toBeNull();
+      if (state === "removed") {
+        expect(received).not.toHaveBeenCalled();
+      } else {
+        expect(received).toHaveBeenCalledExactlyOnceWith({
+          messageId: first.messageId,
+          inboxId,
+          threadId: message?.threadId,
+        });
+      }
+      expect(await reserve(t, "inbox@json.md", ingressKey)).toEqual({ kind: "duplicate" });
+      expect(error).toHaveBeenCalledTimes(state === "success" ? 0 : 1);
+    },
+  );
+
   it("rejects an unknown recipient before storage", async () => {
     const t = convexTest(schema, modules);
 

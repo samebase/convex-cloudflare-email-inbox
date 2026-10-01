@@ -12,8 +12,12 @@ const payload = {
   senderName: "Samebase",
   to: ["recipient@example.com"],
   cc: [],
+  bcc: ["audit@example.com"],
+  replyTo: "reply@example.com",
   subject: "Monthly Report",
   text: "Report",
+  html: "<p>Report</p>",
+  attachments: [],
   inReplyTo: "<original@example.com>",
   references: ["<original@example.com>"],
 };
@@ -62,17 +66,21 @@ describe("Cloudflare structured sending", () => {
       to: payload.to,
       subject: payload.subject,
       text: payload.text,
+      html: payload.html,
+      bcc: payload.bcc,
+      reply_to: payload.replyTo,
       headers: { "In-Reply-To": "<original@example.com>", References: "<original@example.com>" },
     });
   });
 
-  it.each([400, 429, 500])(
+  it.each([400, 408, 429, 500])(
     "makes one request when the provider returns HTTP %s",
     async (status) => {
       const request = vi
         .fn<typeof fetch>()
         .mockResolvedValue(Response.json(cloudflareSendRejection, { status }));
       vi.stubGlobal("fetch", request);
+      vi.spyOn(Date, "now").mockReturnValue(1_000);
 
       const result = await sendCloudflareEmail({
         apiToken: "test-token",
@@ -81,13 +89,55 @@ describe("Cloudflare structured sending", () => {
       });
 
       expect(result).toEqual(
-        status < 500
-          ? { kind: "rejected", code: `cloudflare_http_${status}` }
-          : { kind: "unknown" },
+        status === 429
+          ? { kind: "throttled", retryAt: 2_000 }
+          : status < 500 && status !== 408
+            ? { kind: "rejected", code: "cloudflare_10001" }
+            : { kind: "unknown" },
       );
       expect(request).toHaveBeenCalledOnce();
     },
   );
+
+  it.each([
+    ["30", 31_000],
+    ["Thu, 01 Jan 1970 00:01:00 GMT", 60_000],
+    ["invalid", 2_000],
+  ])("respects Retry-After %s without an SDK retry", async (retryAfter, retryAt) => {
+    vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json(cloudflareSendRejection, {
+        status: 429,
+        headers: { "Retry-After": retryAfter },
+      }),
+    );
+    vi.stubGlobal("fetch", request);
+
+    expect(
+      await sendCloudflareEmail({ apiToken: "test-token", accountId: "test-account", payload }),
+    ).toEqual({ kind: "throttled", retryAt });
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("sends encoded attachments without exposing their storage references", async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json(cloudflareSendReceipt));
+    vi.stubGlobal("fetch", request);
+    const attachment = {
+      content: "dGVzdA==",
+      filename: "report.txt",
+      type: "text/plain",
+      disposition: "attachment" as const,
+    };
+    await sendCloudflareEmail({
+      apiToken: "test-token",
+      accountId: "test-account",
+      payload,
+      attachments: [attachment],
+    });
+
+    const [url, options] = request.mock.calls[0];
+    expect(await new Request(url, options).json()).toMatchObject({ attachments: [attachment] });
+  });
 
   it("does not resend after losing the provider response", async () => {
     const request = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Lost response"));
@@ -101,13 +151,49 @@ describe("Cloudflare structured sending", () => {
 
   it.each([
     cloudflareSendRejection,
+    { success: true, result: {} },
     { ...cloudflareSendReceipt, result: { ...cloudflareSendReceipt.result, queued: null } },
+    { ...cloudflareSendReceipt, result: { ...cloudflareSendReceipt.result, message_id: "" } },
+    {
+      ...cloudflareSendReceipt,
+      result: { ...cloudflareSendReceipt.result, suppressed_recipients: null },
+    },
   ])("does not accept an invalid HTTP 200 receipt", async (receipt) => {
     vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockResolvedValue(Response.json(receipt)));
 
     expect(
       await sendCloudflareEmail({ apiToken: "test-token", accountId: "test-account", payload }),
     ).toEqual({ kind: "unknown" });
+  });
+
+  it("accepts the REST guide receipt without inventing a provider ID or suppression result", async () => {
+    const result = { delivered: ["recipient@example.com"], queued: [], permanent_bounces: [] };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockResolvedValue(Response.json({ success: true, result })),
+    );
+    expect(
+      await sendCloudflareEmail({ apiToken: "test-token", accountId: "test-account", payload }),
+    ).toEqual({
+      kind: "accepted",
+      recipientResults: result,
+    });
+  });
+
+  it.each([
+    [{ errors: [{ code: 10102, message: "forbidden" }] }, "cloudflare_10102"],
+    [{ errors: [] }, "cloudflare_http_403"],
+  ])("retains the rejection reason without depending on an error message", async (body, code) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockResolvedValue(Response.json(body, { status: 403 })),
+    );
+    expect(
+      await sendCloudflareEmail({ apiToken: "test-token", accountId: "test-account", payload }),
+    ).toEqual({
+      kind: "rejected",
+      code,
+    });
   });
 
   it("removes unsafe threading values and bounds References to the provider header limit", async () => {
