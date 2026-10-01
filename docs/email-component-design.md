@@ -9,8 +9,14 @@ consumer, and Samebase is the first notification consumer. Both use the same pac
 to sending, message history, and failure handling belong in that package rather than app-specific transports.
 
 The repository is `samebase/convex-cloudflare-email-inbox`. Its package is
-`@samebase/convex-cloudflare-email-inbox`, under `packages/mail`. The repository root remains the
-private Mail reference app. Extracting a package does not require making the repository public.
+`@samebase/convex-cloudflare-email-inbox`, under `packages/convex-cloudflare-email-inbox`. The private
+Mail reference app lives in `apps/mail` and also provides a starting point for other mail apps.
+The root owns shared tooling, workspace commands, and documentation. Extracting a package does not
+require making the repository public.
+
+The app depends on the component through `workspace:*`. Other repositories install the published
+package. Folder names do not change its import name or the installed Convex component name `mail`.
+Cloudflare builds stay rooted at the repository and delegate to app scripts in `apps/mail`.
 
 An inbox is a sending identity with communication history. Receiving is optional. A notification
 inbox is valid even if nobody routes incoming messages to it. We keep the unified inbox → thread →
@@ -131,10 +137,12 @@ and indexes. New receipt fields are optional for older rows. Extraction is not a
 The package extraction, Cloudflare sender, Mail migration, and locally linked Samebase integration
 are implemented in working branches. They are not a published or deployed release.
 
-Mail's complete build passed, including formatting, lint, type checks, and 61 tests. A fresh packed
+The monorepo build passed, including formatting, lint, type checks, and 60 workspace tests. A fresh packed
 consumer also passed strict type checks and a mocked send through the package exports without the
 authoring workspace's dependency patch. Samebase's focused notification tests and full application
 type check passed. A local Convex backend accepted the component and its history queries.
+After the directory move, the packed consumer and Samebase type check passed again. The Worker
+deployment dry run resolved Mail's assets and bindings from `apps/mail` and uploaded nothing.
 
 Those checks do not prove live delivery. No real Cloudflare send or production deployment ran in
 this integration. The message-ID refinement passed a fresh packed-consumer check, including retained

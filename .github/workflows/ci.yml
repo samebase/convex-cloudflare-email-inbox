@@ -76,3 +76,6 @@ jobs:
         env:
           VITE_CONVEX_URL: http://127.0.0.1:3210
         run: pnpm run build
+
+      - name: Verify the packed component
+        run: pnpm run component:test-package

@@ -88,7 +88,7 @@ History has no automatic expiry; the installing app owns access and retention po
 
 ## Receiving
 
-Receiving is optional. The reference Mail app in this repository supplies a Cloudflare email
+Receiving is optional. The reference Mail app in `apps/mail` supplies a Cloudflare email
 Worker, authenticated ingress endpoints, and R2 storage for complete `.eml` files and named
 attachments. It uses the package's `/protocol` export and the component's `ingress.begin` and
 `ingress.complete` functions. Unknown inboxes are rejected, and repeated raw messages are deduplicated.

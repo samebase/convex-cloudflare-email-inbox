@@ -4,7 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const packageRoot = fileURLToPath(new URL("../packages/mail", import.meta.url));
+const packageRoot = fileURLToPath(
+  new URL("../packages/convex-cloudflare-email-inbox", import.meta.url),
+);
 const temporaryRoot = mkdtempSync(join(tmpdir(), "email-inbox-package-"));
 const consumerRoot = join(temporaryRoot, "consumer");
 const tarballRoot = join(temporaryRoot, "tarball");

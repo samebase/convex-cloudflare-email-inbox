@@ -1,7 +1,7 @@
 # Shared email integration
 
-The canonical component is `packages/mail` in this repository. The root is the Mail reference
-application. Samebase installs the same built package and configures `notifications@samebase.com`
+The canonical component is `packages/convex-cloudflare-email-inbox` in this repository. The Mail
+reference application lives in `apps/mail`. Samebase installs the same built package and configures `notifications@samebase.com`
 as its sending inbox. No generic Cloudflare API package, agent, MCP server, or template work is
 included in this integration.
 
@@ -26,7 +26,7 @@ pnpm run component:watch
 In a separate Samebase integration worktree, temporarily link the package, using your checkout path:
 
 ```sh
-pnpm --filter samebase add @samebase/convex-cloudflare-email-inbox@link:/absolute/path/to/convex-cloudflare-email-inbox/packages/mail
+pnpm --filter samebase add @samebase/convex-cloudflare-email-inbox@link:/absolute/path/to/convex-cloudflare-email-inbox/packages/convex-cloudflare-email-inbox
 pnpm run dev --once
 pnpm run dev
 ```
@@ -35,6 +35,10 @@ Codegen must finish before package build, and package build before consumer code
 uses built exports, not imports into another repository's source. Changes to component function
 signatures need component codegen followed by a build and consumer codegen. Normal implementation
 changes are rebuilt by the watcher.
+
+Mail's local `.env.local` and `.dev.vars` files belong in `apps/mail`. App-specific commands run
+through `pnpm --filter samebase-mail ...`. Cloudflare can keep its build root at `/` because the root
+`build`, `deploy`, and `deploy:preview` scripts delegate to the app's directory.
 
 Before shipping, replace the temporary link with the exact published version and regenerate the
 lockfile. Never commit an absolute local dependency. `pnpm run component:test-package` checks the

@@ -1,13 +1,39 @@
 import { spawn, spawnSync } from "node:child_process";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
-const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-const build = spawnSync(pnpm, ["run", "component:build"], { stdio: "inherit" });
+const workspaceRoot = fileURLToPath(new URL("..", import.meta.url));
+const appRoot = fileURLToPath(new URL("../apps/mail", import.meta.url));
+const componentRoot = fileURLToPath(
+  new URL("../packages/convex-cloudflare-email-inbox", import.meta.url),
+);
+const vitePlusEntrypoint = fileURLToPath(import.meta.resolve("vite-plus/bin"));
+const build = spawnSync(process.execPath, [vitePlusEntrypoint, "run", "component:build"], {
+  cwd: workspaceRoot,
+  stdio: "inherit",
+});
 if (build.error) throw build.error;
 if (build.status !== 0) process.exit(build.status ?? 1);
 
-const watcher = spawn(pnpm, ["run", "component:watch"], { stdio: "inherit" });
-const app = spawn(process.execPath, ["./scripts/run-context-dev.ts", ...process.argv.slice(2)], {
+const args = process.argv.slice(2);
+const mode = args[0];
+const runner =
+  mode === "--primary"
+    ? "run-primary-dev.ts"
+    : mode === "--worktree"
+      ? "run-worktree-dev.ts"
+      : "run-context-dev.ts";
+const forwardedArgs = mode === "--primary" || mode === "--worktree" ? args.slice(1) : args;
+const watcher = spawn(
+  process.execPath,
+  [fileURLToPath(import.meta.resolve("typescript/bin/tsc")), "-p", "tsconfig.json", "--watch"],
+  {
+    cwd: componentRoot,
+    stdio: "inherit",
+  },
+);
+const app = spawn(process.execPath, [`./scripts/${runner}`, ...forwardedArgs], {
+  cwd: appRoot,
   stdio: "inherit",
 });
 let stopping = false;

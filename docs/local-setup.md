@@ -41,6 +41,16 @@ local backend.
 
 Open the local URL printed by Vite.
 
+Mail's frontend, Convex wrappers, Worker, and app scripts live in `apps/mail`. Put local `.env.local`
+and `.dev.vars` files there. The component lives in `packages/convex-cloudflare-email-inbox`, and the
+root development command watches it while the app runs.
+
+Run app-specific Convex commands from the repository root with the workspace filter:
+
+```sh
+pnpm --filter samebase-mail exec convex dashboard
+```
+
 ## Force worktree mode
 
 Use the normal `pnpm run dev` command in a linked Git worktree. Use the explicit
