@@ -11,7 +11,6 @@
 import type * as access from "../access.js";
 import type * as auth from "../auth.js";
 import type * as bootstrap from "../bootstrap.js";
-import type * as delivery from "../delivery.js";
 import type * as http from "../http.js";
 import type * as inboxes from "../inboxes.js";
 import type * as mail from "../mail.js";
@@ -27,7 +26,6 @@ declare const fullApi: ApiFromModules<{
   access: typeof access;
   auth: typeof auth;
   bootstrap: typeof bootstrap;
-  delivery: typeof delivery;
   http: typeof http;
   inboxes: typeof inboxes;
   mail: typeof mail;
@@ -61,5 +59,5 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  mail: import("../components/mail/_generated/component.js").ComponentApi<"mail">;
+  mail: import("@samebase/convex-cloudflare-email-inbox/_generated/component.js").ComponentApi<"mail">;
 };

@@ -6,7 +6,7 @@ import {
   mailAddress,
   type BeginIngressRequest,
   type CompleteIngressRequest,
-} from "../convex/components/mail/mailProtocol";
+} from "@samebase/convex-cloudflare-email-inbox/protocol";
 
 const MAX_RAW_BYTES = 25 * 1_024 * 1_024;
 const MAX_BODY_BYTES = 512 * 1_024;

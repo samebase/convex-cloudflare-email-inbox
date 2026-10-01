@@ -9,6 +9,7 @@
  */
 
 import type * as bootstrap from "../bootstrap.js";
+import type * as cloudflareEmail from "../cloudflareEmail.js";
 import type * as delivery from "../delivery.js";
 import type * as inboxes from "../inboxes.js";
 import type * as ingress from "../ingress.js";
@@ -16,11 +17,16 @@ import type * as mail from "../mail.js";
 import type * as mailProtocol from "../mailProtocol.js";
 import type * as objects from "../objects.js";
 
-import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   bootstrap: typeof bootstrap;
+  cloudflareEmail: typeof cloudflareEmail;
   delivery: typeof delivery;
   inboxes: typeof inboxes;
   ingress: typeof ingress;
@@ -37,7 +43,10 @@ const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> = anyApi as any;
+export const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+> = anyApi as any;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.

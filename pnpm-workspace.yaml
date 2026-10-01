@@ -1,3 +1,7 @@
+packages:
+  - packages/*
+patchedDependencies:
+  convex-helpers@0.1.124: patches/convex-helpers@0.1.124.patch
 allowBuilds:
   esbuild: true
   msw: true
@@ -23,5 +27,3 @@ peerDependencyRules:
   allowedVersions:
     vite: "*"
     vitest: "*"
-patchedDependencies:
-  convex-helpers@0.1.124: patches/convex-helpers@0.1.124.patch

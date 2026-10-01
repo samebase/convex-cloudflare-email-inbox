@@ -1,17 +1,21 @@
-import { v } from "convex/values";
-import { internal } from "./_generated/api";
-import { internalMutation, mutation } from "./_generated/server";
+import { Infer, v } from "convex/values";
+import { api, internal } from "./_generated/api";
+import { action, env, internalMutation, mutation, query } from "./_generated/server";
+import { safeRfcMessageId, sendCloudflareEmail, sendOutcome, sendPayload } from "./cloudflareEmail";
+import { deliveryState } from "./schema";
 
 const SEND_WATCHDOG_DELAY_MS = 60_000;
 
-const sendPayload = v.object({
-  from: v.string(),
-  to: v.array(v.string()),
-  cc: v.array(v.string()),
-  subject: v.string(),
-  text: v.string(),
-  inReplyTo: v.union(v.string(), v.null()),
-  references: v.array(v.string()),
+export const get = query({
+  args: { messageId: v.id("emailMessages") },
+  returns: deliveryState,
+  handler: async (ctx, { messageId }) => {
+    const message = await ctx.db.get(messageId);
+    if (!message || message.transport.kind !== "outbound") {
+      throw new Error("Outbound message not found");
+    }
+    return message.transport.delivery;
+  },
 });
 
 export const claim = mutation({
@@ -42,7 +46,8 @@ export const claim = mutation({
       startedAt,
     });
     return {
-      from: message.headerFrom,
+      from: message.envelopeFrom,
+      ...(message.senderName ? { senderName: message.senderName } : {}),
       to: message.headerTo,
       cc: message.headerCc,
       subject: message.subject,
@@ -77,11 +82,7 @@ export const markUnknownIfStale = internalMutation({
 export const finish = mutation({
   args: {
     messageId: v.id("emailMessages"),
-    outcome: v.union(
-      v.object({ kind: v.literal("accepted"), providerMessageId: v.string() }),
-      v.object({ kind: v.literal("rejected"), code: v.string() }),
-      v.object({ kind: v.literal("unknown") }),
-    ),
+    outcome: sendOutcome,
   },
   returns: v.null(),
   handler: async (ctx, { messageId, outcome }) => {
@@ -89,20 +90,23 @@ export const finish = mutation({
     if (
       !message ||
       message.transport.kind !== "outbound" ||
-      message.transport.delivery.kind !== "sending"
+      (message.transport.delivery.kind !== "sending" &&
+        (message.transport.delivery.kind !== "unknown" || outcome.kind === "unknown"))
     ) {
       return null;
     }
     const observedAt = Date.now();
     if (outcome.kind === "accepted") {
+      const rfcMessageId = safeRfcMessageId(outcome.providerMessageId);
       await ctx.db.patch(messageId, {
-        rfcMessageId: outcome.providerMessageId,
+        ...(rfcMessageId ? { rfcMessageId } : {}),
         transport: {
           ...message.transport,
           delivery: {
             kind: "accepted",
             acceptedAt: observedAt,
             providerMessageId: outcome.providerMessageId,
+            ...(outcome.recipientResults ? { recipientResults: outcome.recipientResults } : {}),
           },
         },
       });
@@ -122,5 +126,25 @@ export const finish = mutation({
       });
     }
     return null;
+  },
+});
+
+export const send = action({
+  args: { messageId: v.id("emailMessages") },
+  returns: deliveryState,
+  handler: async (ctx, { messageId }): Promise<Infer<typeof deliveryState>> => {
+    const payload: Infer<typeof sendPayload> | null = await ctx.runMutation(api.delivery.claim, {
+      messageId,
+    });
+    if (payload) {
+      const apiToken = env.CLOUDFLARE_EMAIL_API_TOKEN?.trim();
+      const accountId = env.CLOUDFLARE_EMAIL_ACCOUNT_ID?.trim();
+      const outcome =
+        apiToken && accountId
+          ? await sendCloudflareEmail({ apiToken, accountId, payload })
+          : { kind: "rejected" as const, code: "email_not_configured" };
+      await ctx.runMutation(api.delivery.finish, { messageId, outcome });
+    }
+    return await ctx.runQuery(api.delivery.get, { messageId });
   },
 });

@@ -10,6 +10,26 @@ export const ingressState = v.union(
   }),
 );
 
+export const recipientResults = v.object({
+  delivered: v.array(v.string()),
+  queued: v.array(v.string()),
+  permanent_bounces: v.array(v.string()),
+  suppressed_recipients: v.array(v.string()),
+});
+
+export const deliveryState = v.union(
+  v.object({ kind: v.literal("queued"), queuedAt: v.number() }),
+  v.object({ kind: v.literal("sending"), startedAt: v.number() }),
+  v.object({
+    kind: v.literal("accepted"),
+    acceptedAt: v.number(),
+    providerMessageId: v.string(),
+    recipientResults: v.optional(recipientResults),
+  }),
+  v.object({ kind: v.literal("rejected"), failedAt: v.number(), code: v.string() }),
+  v.object({ kind: v.literal("unknown"), observedAt: v.number() }),
+);
+
 export const messageTransport = v.union(
   v.object({
     kind: v.literal("inbound"),
@@ -22,17 +42,7 @@ export const messageTransport = v.union(
   v.object({
     kind: v.literal("outbound"),
     clientRequestId: v.string(),
-    delivery: v.union(
-      v.object({ kind: v.literal("queued"), queuedAt: v.number() }),
-      v.object({ kind: v.literal("sending"), startedAt: v.number() }),
-      v.object({
-        kind: v.literal("accepted"),
-        acceptedAt: v.number(),
-        providerMessageId: v.string(),
-      }),
-      v.object({ kind: v.literal("rejected"), failedAt: v.number(), code: v.string() }),
-      v.object({ kind: v.literal("unknown"), observedAt: v.number() }),
-    ),
+    delivery: deliveryState,
   }),
 );
 
@@ -78,6 +88,7 @@ export default defineSchema({
     envelopeFrom: v.string(),
     envelopeTo: v.string(),
     headerFrom: v.string(),
+    senderName: v.optional(v.string()),
     replyToAddress: v.optional(v.string()),
     headerTo: v.array(v.string()),
     headerCc: v.array(v.string()),

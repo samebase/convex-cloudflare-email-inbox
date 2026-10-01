@@ -15,11 +15,6 @@
       "bucket_name": "samebase-mail",
     },
   ],
-  "send_email": [
-    {
-      "name": "EMAIL",
-    },
-  ],
   "assets": {
     "directory": "./dist/client",
     "binding": "ASSETS",

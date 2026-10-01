@@ -61,10 +61,15 @@ export const listThreads = query({
       ? paginator(ctx.db, schema)
           .query("emailThreads")
           .withIndex("by_inbox_and_last_activity_at", (q) => q.eq("inboxId", inboxId))
-      : paginator(ctx.db, schema).query("emailThreads").withIndex("by_last_activity_at");
+      : paginator(ctx.db, schema)
+          .query("emailThreads")
+          .withIndex("by_last_activity_at", (q) => q);
     const threads = await threadQuery.order("desc").paginate(paginationOpts);
     return {
-      ...threads,
+      isDone: threads.isDone,
+      continueCursor: threads.continueCursor,
+      ...(threads.pageStatus ? { pageStatus: threads.pageStatus } : {}),
+      ...(threads.splitCursor ? { splitCursor: threads.splitCursor } : {}),
       page: await Promise.all(
         threads.page.map(async (thread) => {
           const inbox = await ctx.db.get(thread.inboxId);
@@ -105,7 +110,10 @@ export const listMessages = query({
       .order("desc")
       .paginate(paginationOpts);
     return {
-      ...messages,
+      isDone: messages.isDone,
+      continueCursor: messages.continueCursor,
+      ...(messages.pageStatus ? { pageStatus: messages.pageStatus } : {}),
+      ...(messages.splitCursor ? { splitCursor: messages.splitCursor } : {}),
       page: await Promise.all(
         messages.page.map(async (message) => {
           const bodies = await ctx.db
@@ -213,6 +221,7 @@ export const queueSend = mutation({
     cc: v.array(v.string()),
     subject: v.string(),
     text: v.string(),
+    senderName: v.optional(v.string()),
     inReplyTo: v.union(v.string(), v.null()),
     references: v.array(v.string()),
   },
@@ -231,6 +240,17 @@ export const queueSend = mutation({
     if (!inbox) {
       throw new Error("Inbox does not exist");
     }
+    const to = args.to.map(normalizeMailAddress);
+    const cc = args.cc.map(normalizeMailAddress);
+    const subject = args.subject.trim().slice(0, 998) || "(no subject)";
+    const references = args.references.slice(-20);
+    const senderName = args.senderName?.trim();
+    if (
+      args.senderName !== undefined &&
+      (!senderName || senderName.length > 255 || /[\r\n]/.test(senderName))
+    ) {
+      throw new Error("Sender name is invalid");
+    }
     const existing = await ctx.db
       .query("emailMessages")
       .withIndex("by_inbox_and_client_request_id", (q) =>
@@ -238,11 +258,25 @@ export const queueSend = mutation({
       )
       .unique();
     if (existing) {
+      const bodies = await ctx.db
+        .query("emailBodies")
+        .withIndex("by_message", (q) => q.eq("messageId", existing._id))
+        .take(1);
+      if (
+        existing.transport.kind !== "outbound" ||
+        (args.threadId && existing.threadId !== args.threadId) ||
+        JSON.stringify(existing.headerTo) !== JSON.stringify(to) ||
+        JSON.stringify(existing.headerCc) !== JSON.stringify(cc) ||
+        existing.subject !== subject ||
+        bodies[0]?.content !== args.text ||
+        (existing.inReplyTo ?? null) !== (args.inReplyTo || null) ||
+        JSON.stringify(existing.references) !== JSON.stringify(references) ||
+        existing.senderName !== senderName
+      ) {
+        throw new Error("Client request ID was already used for a different message");
+      }
       return existing._id;
     }
-    const to = args.to.map(normalizeMailAddress);
-    const cc = args.cc.map(normalizeMailAddress);
-    const subject = args.subject.trim().slice(0, 998) || "(no subject)";
     const snippet = args.text.replace(/\s+/g, " ").trim().slice(0, 280);
     const occurredAt = Date.now();
 
@@ -271,10 +305,11 @@ export const queueSend = mutation({
       envelopeFrom: inbox.address,
       envelopeTo: to[0],
       headerFrom: inbox.address,
+      ...(senderName ? { senderName } : {}),
       headerTo: to,
       headerCc: cc,
       ...(args.inReplyTo ? { inReplyTo: args.inReplyTo } : {}),
-      references: args.references.slice(-20),
+      references,
       subject,
       snippet,
       occurredAt,

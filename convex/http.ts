@@ -7,7 +7,7 @@ import {
   beginIngressResponse,
   completeIngressRequest,
   completeIngressResponse,
-} from "./components/mail/mailProtocol";
+} from "@samebase/convex-cloudflare-email-inbox/protocol";
 
 const http = httpRouter();
 

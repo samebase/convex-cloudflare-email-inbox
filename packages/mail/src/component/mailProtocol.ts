@@ -58,25 +58,8 @@ export const completeIngressResponse = z.object({
   kind: z.enum(["committed", "duplicate"]),
 });
 
-export const sendMailRequest = z.object({
-  version: z.literal(1),
-  from: mailAddress,
-  to: z.array(mailAddress).min(1).max(50),
-  cc: z.array(mailAddress).max(50),
-  subject: z.string().max(998),
-  text: z.string().max(524_288),
-  inReplyTo: shortText.nullable(),
-  references: z.array(shortText).max(20),
-});
-
-export const sendMailResponse = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("accepted"), providerMessageId: z.string().min(1).max(998) }),
-  z.object({ kind: z.literal("rejected"), code: z.string().min(1).max(120) }),
-]);
-
 export type BeginIngressRequest = z.infer<typeof beginIngressRequest>;
 export type CompleteIngressRequest = z.infer<typeof completeIngressRequest>;
-export type SendMailRequest = z.infer<typeof sendMailRequest>;
 
 export function normalizeMailAddress(value: string) {
   const parsed = mailAddress.safeParse(value);

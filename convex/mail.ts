@@ -1,6 +1,7 @@
 import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
-import { components, internal } from "./_generated/api";
+import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox";
+import { components } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { requireOwner } from "./access";
 
@@ -121,7 +122,7 @@ export const queueSend = mutation({
   returns: v.string(),
   handler: async (ctx, args) => {
     await requireOwner(ctx);
-    const messageId = await ctx.runMutation(components.mail.mail.queueSend, {
+    return await new EmailInbox(components.mail).enqueue(ctx, {
       inboxId: args.inboxId,
       threadId: args.threadId,
       clientRequestId: args.clientRequestId,
@@ -132,7 +133,5 @@ export const queueSend = mutation({
       inReplyTo: args.inReplyTo,
       references: args.references,
     });
-    await ctx.scheduler.runAfter(0, internal.delivery.send, { messageId });
-    return messageId;
   },
 });

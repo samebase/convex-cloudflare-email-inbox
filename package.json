@@ -1,5 +1,5 @@
 {
-  "name": "@samebase/convex-cloudflare-email-inbox",
+  "name": "samebase-mail",
   "version": "0.0.0",
   "private": true,
   "description": "Cloudflare email inboxes for Convex, with a private Mail reference app.",
@@ -21,13 +21,17 @@
     "#hooks/*": "./src/hooks/*.ts"
   },
   "scripts": {
-    "dev": "node ./scripts/run-context-dev.ts",
+    "dev": "node ./scripts/run-component-dev.ts",
     "dev:primary": "node ./scripts/run-primary-dev.ts",
     "dev:frontend": "vp dev",
     "dev:worktree": "node ./scripts/run-worktree-dev.ts",
-    "check": "vp check && vp run typecheck && vp test && vp run verify:cloudflare-redirects && vp run verify:dev-launcher-version",
+    "component:build": "pnpm --filter @samebase/convex-cloudflare-email-inbox build",
+    "component:codegen": "convex codegen --component-dir ./packages/mail/src/component",
+    "component:watch": "tsc -p packages/mail/tsconfig.json --watch",
+    "component:test-package": "pnpm run component:build && node ./scripts/check-email-package.ts",
+    "check": "pnpm run component:build && vp check && vp run typecheck && vp test && vp run verify:cloudflare-redirects && vp run verify:dev-launcher-version",
     "build": "node ./scripts/build-cloudflare.ts",
-    "build:app": "wrangler types && vp run check && vp build && node ./scripts/deploy-mail-preview.ts --prepare",
+    "build:app": "pnpm run component:build && wrangler types && vp run check && vp -C . build && node ./scripts/deploy-mail-preview.ts --prepare",
     "deploy": "wrangler deploy",
     "deploy:preview": "node ./scripts/deploy-mail-preview.ts",
     "deploy:dry-run": "pnpm run build && wrangler deploy --dry-run",
@@ -48,6 +52,7 @@
   "dependencies": {
     "@auth/core": "0.41.3",
     "@convex-dev/auth": "^0.0.94",
+    "@samebase/convex-cloudflare-email-inbox": "workspace:*",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-router": "^1.170.18",
     "@tanstack/react-start": "^1.168.34",

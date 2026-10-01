@@ -79,6 +79,7 @@ export function selectConvexDeployPlan(env: NodeJS.ProcessEnv): ConvexDeployPlan
 
 export async function main(env: NodeJS.ProcessEnv = process.env, runCommand = run) {
   const plan = selectConvexDeployPlan(env);
+  await runCommand(["run", "component:build"], { ...env, CONVEX_DEPLOY_KEY: undefined });
 
   if (plan.kind === "frontendOnly") {
     await runCommand(["run", "build:app"], { ...env, CONVEX_DEPLOY_KEY: undefined });

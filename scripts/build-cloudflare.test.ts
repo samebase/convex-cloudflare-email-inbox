@@ -64,9 +64,30 @@ describe("build-cloudflare", () => {
     const runCommand = vi.fn(async () => {});
     await main({ CONVEX_DEPLOY_KEY: "prod-key", WORKERS_CI_BRANCH: "main" }, runCommand);
 
-    expect(runCommand).toHaveBeenCalledExactlyOnceWith(["run", "build:app"], {
+    expect(runCommand).toHaveBeenNthCalledWith(1, ["run", "component:build"], {
       CONVEX_DEPLOY_KEY: undefined,
       WORKERS_CI_BRANCH: "main",
+    });
+    expect(runCommand).toHaveBeenNthCalledWith(2, ["run", "build:app"], {
+      CONVEX_DEPLOY_KEY: undefined,
+      WORKERS_CI_BRANCH: "main",
+    });
+  });
+  it("builds component exports before Convex loads the preview app", async () => {
+    const runCommand = vi.fn(async () => {});
+    await main(
+      { CONVEX_DEPLOY_KEY: "preview-key", WORKERS_CI: "1", WORKERS_CI_BRANCH: "feature" },
+      runCommand,
+    );
+    expect(runCommand).toHaveBeenNthCalledWith(1, ["run", "component:build"], {
+      CONVEX_DEPLOY_KEY: undefined,
+      WORKERS_CI: "1",
+      WORKERS_CI_BRANCH: "feature",
+    });
+    expect(runCommand).toHaveBeenNthCalledWith(2, expect.arrayContaining(["deploy"]), {
+      CONVEX_DEPLOY_KEY: "preview-key",
+      WORKERS_CI: "1",
+      WORKERS_CI_BRANCH: "feature",
     });
   });
 });

@@ -10,6 +10,8 @@ export default defineConfig({
     ignorePatterns: [
       ".agents/**",
       "convex/_generated/**",
+      "packages/mail/src/component/_generated/**",
+      "packages/mail/dist/**",
       "src/routeTree.gen.ts",
       "worker-configuration.d.ts",
     ],
@@ -18,6 +20,8 @@ export default defineConfig({
     ignorePatterns: [
       ".agents/**",
       "convex/_generated/**",
+      "packages/mail/src/component/_generated/**",
+      "packages/mail/dist/**",
       "src/routeTree.gen.ts",
       "worker-configuration.d.ts",
     ],

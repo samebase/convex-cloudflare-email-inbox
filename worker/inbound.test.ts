@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { completeIngressRequest } from "../convex/components/mail/mailProtocol";
+import { completeIngressRequest } from "@samebase/convex-cloudflare-email-inbox/protocol";
 import { receiveEmail } from "./inbound";
 
 function rawStream(value: string) {
