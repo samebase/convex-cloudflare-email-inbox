@@ -10,7 +10,7 @@
     "component:codegen": "pnpm --filter samebase-mail exec convex codegen --component-dir ../../packages/convex-cloudflare-email-inbox/src/component",
     "component:watch": "pnpm --filter @samebase/convex-cloudflare-email-inbox exec tsc -p tsconfig.json --watch",
     "component:test-package": "pnpm run component:build && node ./scripts/check-email-package.ts",
-    "check": "pnpm run component:build && vp check && pnpm run typecheck && vp test && pnpm --filter samebase-mail run verify:cloudflare-redirects && pnpm --filter samebase-mail run verify:dev-launcher-version",
+    "check": "pnpm run component:build && pnpm run typecheck && vp check && vp test && pnpm --filter samebase-mail run verify:cloudflare-redirects && pnpm --filter samebase-mail run verify:dev-launcher-version",
     "typecheck": "tsc --project tsconfig.node.json && pnpm --filter samebase-mail run typecheck",
     "build": "pnpm --filter samebase-mail run build",
     "deploy": "pnpm --filter samebase-mail run deploy",
