@@ -3,6 +3,9 @@
   "compatibility_date": "2026-05-14",
   "main": "./worker/index.ts",
   "preview_urls": true,
+  "previews": {
+    "r2_buckets": [{ "binding": "MAIL_STORAGE", "bucket_name": "samebase-mail-previews" }],
+  },
   "vars": {
     "CONVEX_SITE_URL": "https://sensible-porcupine-30.convex.site",
   },

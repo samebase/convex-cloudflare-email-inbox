@@ -63,10 +63,21 @@ Add `--prod` for production.
 | `pnpm run check`          | Format, lint, type-check, and test the app            |
 | `pnpm run build`          | Run the complete Cloudflare build path                |
 | `pnpm run deploy:dry-run` | Build and validate a Worker upload without publishing |
-| `pnpm run deploy`         | Build and deploy the production Worker                |
+| `pnpm run deploy`         | Deploy the production Worker                          |
 
-Cloudflare Workers Builds deploys `main` to production. Other branches upload preview versions and
-use Convex preview deployments.
+Cloudflare Workers Builds deploys `main` to production. The standard build scripts select the
+branch's Convex deployment and preserve existing auth keys. For provider setup, use the
+[Worker Previews migration guide](https://samebase.com/docs/cloudflare-previews-migration).
+
+Mail previews use the `samebase-mail-previews` R2 bucket. The preview deploy command sets
+`CONVEX_SITE_URL` to the Convex URL from that branch's build. It also sets `MAIL_WORKER_URL` in
+that Convex preview. Production mail storage and email routing stay unchanged.
+
+Previews Base holds test runtime settings. The Worker and Convex preview need matching test
+`MAIL_BRIDGE_SECRET` values. Set the test `MAIL_BRIDGE_SECRET`, `OWNER_EMAIL`, and
+`OWNER_SETUP_SECRET` as Convex project defaults for preview deployments only. Restrict the
+Previews Base `EMAIL` binding to a verified test recipient. Do not reuse production secrets or
+route the live inbox to a preview.
 
 ## Mail delivery rules
 
