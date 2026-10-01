@@ -53,7 +53,7 @@ importers:
         version: 1.45.0(react@19.2.6)
       convex-helpers:
         specifier: 0.1.124
-        version: 0.1.124(patch_hash=f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511)(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.6))(hono@4.12.34)(react@19.2.6)(typescript@6.0.3)(zod@4.5.4)
+        version: 0.1.124(patch_hash=f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511)(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.6))(hono@4.13.11)(react@19.2.6)(typescript@6.0.3)(zod@4.5.4)
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@19.2.6)
@@ -6513,12 +6513,12 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-helpers@0.1.124(patch_hash=f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511)(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.6))(hono@4.12.34)(react@19.2.6)(typescript@6.0.3)(zod@4.5.4):
+  convex-helpers@0.1.124(patch_hash=f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511)(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.6))(hono@4.13.11)(react@19.2.6)(typescript@6.0.3)(zod@4.5.4):
     dependencies:
       convex: 1.45.0(react@19.2.6)
     optionalDependencies:
       '@standard-schema/spec': 1.1.0
-      hono: 4.12.34
+      hono: 4.13.11
       react: 19.2.6
       typescript: 6.0.3
       zod: 4.5.4
