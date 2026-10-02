@@ -227,6 +227,12 @@ to a verified recovery address. Provisioning, recovery policy, and orphan cleanu
 
 ## Tests
 
+Outgoing attachments have automated coverage but are not yet live-verified. Before publication,
+send a message with an attachment to an external mailbox and reply to it. Verify the attachment
+bytes, compare Cloudflare's returned message ID with the received email's `Message-ID`, and confirm
+that the reply joins the original thread. If the provider omits a usable message ID, replies to
+conversations started here can form a separate thread. That case remains a release blocker.
+
 ```ts
 import { register } from "@samebase/convex-cloudflare-email-inbox/test";
 

@@ -111,3 +111,18 @@ build hold until the existing cutover checks in the integration guide are comple
 
 Mail still provides a plain-text compose UI. HTML, Bcc, Reply-To, and outgoing attachments are package
 API capabilities, not new Mail editor controls. This update did not run a browser UI check.
+
+## Second review follow-up
+
+The October 2 review adds three tracked findings. The `queueSend` contract now excludes `threadId`,
+`inReplyTo`, `references`, and `replyToMessageId`. These values exist only on the private `queueMessage`
+input and are derived by `queueReply`. The client and pagination tests use those distinct contracts.
+Four validator tests confirm that each removed field is rejected without creating a message or thread.
+The full check passes 103 tests.
+
+The threading and attachment findings remain open pending one controlled live round trip. Send a
+message with a named attachment to an external mailbox controlled by the owner. Compare the returned
+provider ID with the actual `Message-ID`, check the received attachment bytes, reply, and confirm
+the component stores that reply in the original thread. If the REST response lacks a usable ID,
+investigate the transport needed for reliable threading before publication. The README records the
+current limitation. No production deployment or live test has been performed for this follow-up.

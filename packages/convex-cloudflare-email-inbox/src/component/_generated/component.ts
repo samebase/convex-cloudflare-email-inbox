@@ -343,15 +343,11 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           clientRequestId: string;
           from?: string;
           html?: string;
-          inReplyTo: string | null;
           inboxId?: string;
-          references: Array<string>;
           replyTo?: string;
-          replyToMessageId?: string;
           senderName?: string;
           subject: string;
           text: string;
-          threadId: string | null;
           to: Array<string>;
         },
         string,

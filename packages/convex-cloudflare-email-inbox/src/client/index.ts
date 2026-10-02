@@ -54,7 +54,6 @@ export class EmailInbox {
     return await ctx.runMutation(this.component.mail.queueSend, {
       ...(inboxId ? { inboxId } : {}),
       ...(from === undefined ? {} : { from }),
-      threadId: null,
       clientRequestId: options.idempotencyKey,
       to: options.to,
       cc: options.cc ?? [],
@@ -64,8 +63,6 @@ export class EmailInbox {
       ...(options.html === undefined ? {} : { html: options.html }),
       ...(options.replyTo === undefined ? {} : { replyTo: options.replyTo }),
       attachments: options.attachments ?? [],
-      inReplyTo: null,
-      references: [],
       ...(senderName !== undefined ? { senderName } : {}),
     });
   }

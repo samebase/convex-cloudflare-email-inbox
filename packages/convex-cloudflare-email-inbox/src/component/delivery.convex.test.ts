@@ -261,15 +261,12 @@ describe("outbound delivery state", () => {
     if (!message) throw new Error("Missing fixture message");
     const args = {
       inboxId: message.inboxId,
-      threadId: null,
       clientRequestId: "test-client-request-id",
       to: ["owner@example.com"],
       cc: [],
       subject: "Test",
       text: "Body",
       senderName: "Samebase",
-      inReplyTo: null,
-      references: [],
     };
 
     expect(await t.mutation(api.mail.queueSend, args)).toBe(messageId);

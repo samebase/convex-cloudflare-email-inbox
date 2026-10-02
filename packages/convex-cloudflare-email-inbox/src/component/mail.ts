@@ -236,7 +236,6 @@ export const markThreadRead = mutation({
 const queueSendArgs = v.object({
   inboxId: v.optional(v.id("inboxes")),
   from: v.optional(v.string()),
-  threadId: v.union(v.id("emailThreads"), v.null()),
   clientRequestId: v.string(),
   to: v.array(v.string()),
   cc: v.array(v.string()),
@@ -247,12 +246,16 @@ const queueSendArgs = v.object({
   html: v.optional(v.string()),
   attachments: v.optional(v.array(outboundAttachment)),
   senderName: v.optional(v.string()),
-  inReplyTo: v.union(v.string(), v.null()),
-  replyToMessageId: v.optional(v.id("emailMessages")),
-  references: v.array(v.string()),
 });
 
-async function queueMessage(ctx: MutationCtx, args: Infer<typeof queueSendArgs>) {
+type QueueMessageArgs = Infer<typeof queueSendArgs> & {
+  threadId: Doc<"emailThreads">["_id"] | null;
+  inReplyTo: string | null;
+  replyToMessageId?: Doc<"emailMessages">["_id"];
+  references: string[];
+};
+
+async function queueMessage(ctx: MutationCtx, args: QueueMessageArgs) {
   if (!args.clientRequestId.trim() || args.clientRequestId.length > 120) {
     throw new Error("Idempotency key must contain 1 to 120 characters");
   }
@@ -445,7 +448,8 @@ async function queueMessage(ctx: MutationCtx, args: Infer<typeof queueSendArgs>)
 export const queueSend = mutation({
   args: queueSendArgs,
   returns: v.id("emailMessages"),
-  handler: queueMessage,
+  handler: async (ctx, args) =>
+    await queueMessage(ctx, { ...args, threadId: null, inReplyTo: null, references: [] }),
 });
 
 export const queueReply = mutation({

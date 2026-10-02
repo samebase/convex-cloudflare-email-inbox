@@ -23,27 +23,21 @@ describe("component history pagination", () => {
     const inboxId = inboxIds[0];
     const firstId = await t.mutation(api.mail.queueSend, {
       inboxId,
-      threadId: null,
       clientRequestId: "pagination-first-message",
       to: ["recipient@example.com"],
       cc: [],
       subject: "History",
       text: "First message",
-      inReplyTo: null,
-      references: [],
     });
     const first = await t.run(async (ctx) => await ctx.db.get(firstId));
     if (!first) throw new Error("Missing fixture message");
-    await t.mutation(api.mail.queueSend, {
-      inboxId,
-      threadId: first.threadId,
-      clientRequestId: "pagination-second-message",
+    await t.mutation(api.mail.queueReply, {
+      messageId: firstId,
+      idempotencyKey: "pagination-second-message",
       to: ["recipient@example.com"],
       cc: [],
       subject: "History",
       text: "Second message",
-      inReplyTo: null,
-      references: [],
     });
 
     const globalThreads = await t.query(api.mail.listThreads, {
@@ -86,6 +80,26 @@ describe("message contract", () => {
     return { t, inboxId };
   }
 
+  it.each(["threadId", "inReplyTo", "references", "replyToMessageId"])(
+    "rejects reply-only field %s when queueing a new message",
+    async (field) => {
+      const { t, inboxId } = await setup();
+      await expect(
+        t.mutation(api.mail.queueSend, {
+          inboxId,
+          clientRequestId: "new-message",
+          to: ["person@example.com"],
+          cc: [],
+          subject: "New conversation",
+          text: "Hello",
+          [field]: field === "references" ? [] : null,
+        }),
+      ).rejects.toThrow(`Unexpected field \`${field}\``);
+      expect(await t.run((ctx) => ctx.db.query("emailMessages").take(1))).toHaveLength(0);
+      expect(await t.run((ctx) => ctx.db.query("emailThreads").take(1))).toHaveLength(0);
+    },
+  );
+
   it("retains rich content and rejects any changed payload under the same key", async () => {
     const { t, inboxId } = await setup();
     const file = {
@@ -98,7 +112,6 @@ describe("message contract", () => {
     const args = {
       inboxId,
       from: " SUPPORT@example.com ",
-      threadId: null,
       clientRequestId: "receipt:42",
       to: ["buyer@example.com"],
       cc: [],
@@ -108,8 +121,6 @@ describe("message contract", () => {
       text: "Receipt",
       html: "<p>Receipt</p>",
       attachments: [file],
-      inReplyTo: null,
-      references: [],
     };
     const messageId = await t.mutation(api.mail.queueSend, args);
     expect(await t.mutation(api.mail.queueSend, args)).toBe(messageId);
@@ -143,15 +154,12 @@ describe("message contract", () => {
     const { t, inboxId } = await setup();
     const args = {
       inboxId,
-      threadId: null,
       clientRequestId: "validation",
       to: ["person@example.com"],
       cc: [],
       subject: "Hello",
       text: "",
       html: "<p>Hello</p>",
-      inReplyTo: null,
-      references: [],
     };
     await expect(
       t.mutation(api.mail.queueSend, { ...args, from: "other@example.com" }),
@@ -187,14 +195,11 @@ describe("message contract", () => {
     const { t, inboxId } = await setup();
     const first = await t.mutation(api.mail.queueSend, {
       inboxId,
-      threadId: null,
       clientRequestId: "parent",
       to: ["person@example.com"],
       cc: [],
       subject: "Question",
       text: "Hello",
-      inReplyTo: null,
-      references: [],
     });
     await t.run(async (ctx) =>
       ctx.db.patch(first, {
@@ -242,14 +247,11 @@ describe("message contract", () => {
     const { t, inboxId } = await setup();
     const parentId = await t.mutation(api.mail.queueSend, {
       inboxId,
-      threadId: null,
       clientRequestId: "pending-parent",
       to: ["person@example.com"],
       cc: [],
       subject: "Question",
       text: "Hello",
-      inReplyTo: null,
-      references: [],
     });
     const args = { messageId: parentId, idempotencyKey: "pending-reply", text: "Follow up" };
     const replyId = await t.mutation(api.mail.queueReply, args);
