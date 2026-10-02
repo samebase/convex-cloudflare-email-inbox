@@ -1,0 +1,83 @@
+{
+  "name": "@samebase/convex-cloudflare-email-inbox",
+  "version": "0.1.0",
+  "description": "Cloudflare email sending, inboxes, and delivery history for Convex.",
+  "keywords": [
+    "cloudflare",
+    "convex",
+    "convex-component",
+    "email",
+    "inbox"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samebase/convex-cloudflare-email-inbox.git",
+    "directory": "packages/convex-cloudflare-email-inbox"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "README.md"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./convex.config.js": {
+      "types": "./dist/component/convex.config.d.ts",
+      "default": "./dist/component/convex.config.js"
+    },
+    "./_generated/component.js": {
+      "types": "./dist/component/_generated/component.d.ts",
+      "default": "./dist/component/_generated/component.js"
+    },
+    "./protocol": {
+      "types": "./dist/component/mailProtocol.d.ts",
+      "default": "./dist/component/mailProtocol.js"
+    },
+    "./worker": {
+      "types": "./dist/worker/index.d.ts",
+      "default": "./dist/worker/index.js"
+    },
+    "./r2": {
+      "types": "./dist/r2.d.ts",
+      "default": "./dist/r2.js"
+    },
+    "./receiving": {
+      "types": "./dist/client/receiving.d.ts",
+      "default": "./dist/client/receiving.js"
+    },
+    "./test": "./src/test.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "prepack": "pnpm run build",
+    "build": "node ./scripts/build.ts",
+    "test": "vp test",
+    "codegen": "convex codegen --component-dir ./src/component"
+  },
+  "dependencies": {
+    "cloudflare": "7.2.0",
+    "convex-helpers": "0.1.124",
+    "postal-mime": "^3.0.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2"
+  },
+  "peerDependencies": {
+    "convex": "^1.45.0",
+    "convex-test": "^0.0.56"
+  },
+  "peerDependenciesMeta": {
+    "convex-test": {
+      "optional": true
+    }
+  }
+}

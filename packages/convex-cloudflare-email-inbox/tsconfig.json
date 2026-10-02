@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/client/**/*.ts", "src/component/**/*.ts", "src/worker/**/*.ts", "src/r2.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.convex.test.ts"]
+}

@@ -24,5 +24,10 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["scripts/**/*.ts", "vite.config.ts"]
+  "include": [
+    "scripts/**/*.ts",
+    "packages/*/scripts/**/*.ts",
+    "packages/*/vite.config.ts",
+    "vite.config.ts"
+  ]
 }

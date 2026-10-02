@@ -20,9 +20,36 @@ overrides:
   vite: npm:@voidzero-dev/vite-plus-core@0.3.0
   vitest: 4.1.11
 
+patchedDependencies:
+  convex-helpers@0.1.124: f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511
+
 importers:
 
   .:
+    devDependencies:
+      '@edge-runtime/vm':
+        specifier: ^5.0.0
+        version: 5.0.0
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.13.3
+      convex-test:
+        specifier: ^0.0.56
+        version: 0.0.56(convex@1.45.0(react@19.2.6))
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+      vite:
+        specifier: npm:@voidzero-dev/vite-plus-core@0.3.0
+        version: '@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(typescript@6.0.3)'
+      vite-plus:
+        specifier: 'catalog:'
+        version: 0.3.0(@edge-runtime/vm@5.0.0)(@types/node@24.13.3)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(typescript@6.0.3))(esbuild@0.28.1)(jiti@2.7.0)(typescript@6.0.3)
+      vitest:
+        specifier: 4.1.11
+        version: 4.1.11(@edge-runtime/vm@5.0.0)(@types/node@24.13.3)(@vitest/browser-preview@4.1.11)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(typescript@6.0.3))
+
+  apps/mail:
     dependencies:
       '@auth/core':
         specifier: 0.41.3
@@ -30,6 +57,9 @@ importers:
       '@convex-dev/auth':
         specifier: ^0.0.94
         version: 0.0.94(@auth/core@0.41.3)(convex@1.45.0(react@19.2.6))(react@19.2.6)
+      '@samebase/convex-cloudflare-email-inbox':
+        specifier: workspace:*
+        version: link:../../packages/convex-cloudflare-email-inbox
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(typescript@6.0.3))
@@ -48,12 +78,12 @@ importers:
       convex:
         specifier: ^1.45.0
         version: 1.45.0(react@19.2.6)
+      convex-helpers:
+        specifier: 0.1.124
+        version: 0.1.124(patch_hash=f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511)(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.6))(hono@4.13.11)(react@19.2.6)(typescript@6.0.3)(zod@4.5.4)
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@19.2.6)
-      postal-mime:
-        specifier: ^3.0.0
-        version: 3.0.0
       radix-ui:
         specifier: ^1.4.3
         version: 1.4.3(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -115,6 +145,31 @@ importers:
       wrangler:
         specifier: 4.136.2
         version: 4.136.2(@types/node@24.13.3)
+
+  packages/convex-cloudflare-email-inbox:
+    dependencies:
+      cloudflare:
+        specifier: 7.2.0
+        version: 7.2.0
+      convex:
+        specifier: ^1.45.0
+        version: 1.45.0(react@19.2.6)
+      convex-helpers:
+        specifier: 0.1.124
+        version: 0.1.124(patch_hash=f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511)(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.6))(hono@4.13.11)(react@19.2.6)(typescript@6.0.3)(zod@4.5.4)
+      convex-test:
+        specifier: ^0.0.56
+        version: 0.0.56(convex@1.45.0(react@19.2.6))
+      postal-mime:
+        specifier: ^3.0.0
+        version: 3.0.0
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
+    devDependencies:
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
 
 packages:
 
@@ -2670,6 +2725,10 @@ packages:
     resolution: {integrity: sha512-ywqV+5MmyL4E7ybXgKys4DugZbX0FC6LnwrhjuykIjnK9k8OQacQ7axGKnjDXWNhns0xot3bZI5h55H8yo9cJg==}
     engines: {node: '>=6'}
 
+  cloudflare@7.2.0:
+    resolution: {integrity: sha512-Y0ieFi/VOGsUeJmOWwuzztTQZ5HgvNqa7I6IaGBf9wS4Q2xjNmRfyHls741HlveI4DSTribs7YHaTjhKvNcRsw==}
+    hasBin: true
+
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
@@ -2699,6 +2758,28 @@ packages:
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
+
+  convex-helpers@0.1.124:
+    resolution: {integrity: sha512-Gbu/jq6I3x5Y51cXP5c7+CI3t15vX5Xi2G0tOym3rxpBtYqrI+qWwxkqZgJYrHHccY42wZudB8h6kS3fak8Aeg==}
+    hasBin: true
+    peerDependencies:
+      '@standard-schema/spec': ^1.0.0
+      convex: ^1.43.0
+      hono: ^4.0.5
+      react: ^17.0.2 || ^18.0.0 || ^19.0.0
+      typescript: ^5.5 || ^6.0.0 || ^7.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@standard-schema/spec':
+        optional: true
+      hono:
+        optional: true
+      react:
+        optional: true
+      typescript:
+        optional: true
+      zod:
+        optional: true
 
   convex-test@0.0.56:
     resolution: {integrity: sha512-dLYXlQjKFoGqvjAmPzyLgb2HsYI7iLo1iuNTU2DZmSrMRLWosYk94erjSU67GG5ovfP6+MjX8RJO+ebhmL6QYA==}
@@ -6016,7 +6097,7 @@ snapshots:
       jiti: 2.7.0
       magic-string: 0.30.21
       prettier: 3.8.3
-      zod: 4.4.3
+      zod: 4.5.4
     transitivePeerDependencies:
       - supports-color
 
@@ -6080,7 +6161,7 @@ snapshots:
       ufo: 1.6.4
       vitefu: 1.1.3(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(typescript@6.0.3))
       xmlbuilder2: 4.0.3
-      zod: 4.4.3
+      zod: 4.5.4
     optionalDependencies:
       vite: '@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(typescript@6.0.3)'
     transitivePeerDependencies:
@@ -6469,6 +6550,8 @@ snapshots:
 
   cli-spinners@2.9.2: {}
 
+  cloudflare@7.2.0: {}
+
   clsx@2.1.1: {}
 
   code-block-writer@13.0.3: {}
@@ -6484,6 +6567,16 @@ snapshots:
   content-type@2.0.0: {}
 
   convert-source-map@2.0.0: {}
+
+  convex-helpers@0.1.124(patch_hash=f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511)(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.6))(hono@4.13.11)(react@19.2.6)(typescript@6.0.3)(zod@4.5.4):
+    dependencies:
+      convex: 1.45.0(react@19.2.6)
+    optionalDependencies:
+      '@standard-schema/spec': 1.1.0
+      hono: 4.13.11
+      react: 19.2.6
+      typescript: 6.0.3
+      zod: 4.5.4
 
   convex-test@0.0.56(convex@1.45.0(react@19.2.6)):
     dependencies:

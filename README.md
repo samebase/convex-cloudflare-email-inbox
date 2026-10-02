@@ -1,29 +1,41 @@
-# Samebase Mail
+# Convex Cloudflare Email Inbox
 
-Samebase Mail is a private mail desk for multiple addresses on domains that you own. The first
-deployment accepts `inbox@json.md` and `notes@json.md`. The owner can create more `json.md`
-addresses in the app.
+`@samebase/convex-cloudflare-email-inbox` is a Convex component for Cloudflare email sending,
+inboxes, threads, and delivery history. Every send has a stored message record, including app
+notifications that never receive replies.
 
-The app has no AI agent, MCP server, template system, or public account flow.
+## Use the package
 
-## Architecture
+```sh
+pnpm add @samebase/convex-cloudflare-email-inbox convex
+```
 
-- One Cloudflare Worker receives routed email, parses MIME, serves the web app, and sends replies.
-- One private R2 bucket stores complete `.eml` files and named attachments.
-- Convex stores inbox rules, ingress receipts, threads, message metadata, readable bodies, and
-  outbound delivery state.
-- Convex Auth allows one owner email. First sign-up also needs a one-time setup code.
+The [package guide](./packages/convex-cloudflare-email-inbox/README.md) covers installation,
+Cloudflare credentials, sending, history, and tests. Sending runs inside Convex. Receiving uses
+the package's Cloudflare Worker helpers and your R2 bucket. Mail is the reference integration.
 
-The Worker routes mail by the SMTP envelope recipient. This also handles BCC mail. Before it writes
-to R2, it reserves `(inbox, SHA-256 of raw message)` in Convex. A repeated delivery uses the same R2
-keys and cannot increment message counters twice.
+The first package release is pending. The workspace package is available for local integration;
+the registry installation command applies after publication.
 
-R2 is not a second business database. Convex keeps every searchable field and every state
-transition. R2 only keeps bytes that must retain their complete form or filename.
+## Repository layout
 
-## Local development
+```text
+packages/convex-cloudflare-email-inbox/  Published component and its tests
+apps/mail/                             Mail application and deployment configuration
+docs/                                  Design decisions and development guides
+scripts/                               Workspace development and package verification
+```
 
-Install [Vite+](https://viteplus.dev/guide/), then run:
+[Mail](./apps/mail/README.md) is a working private mail app for multiple inboxes on your domains.
+It is also the example consumer and starting point for building a mail app with the component.
+The app uses the package through `workspace:*`, so package changes are exercised in the same checkout.
+
+The repository root owns shared tooling and commands. Application dependencies and configuration
+live in `apps/mail`. The npm package has its own exports, dependencies, and release version.
+
+## Develop and verify
+
+Install [Vite+](https://viteplus.dev/guide/), then run these commands from the repository root:
 
 ```sh
 corepack enable
@@ -31,65 +43,25 @@ pnpm install
 pnpm run dev
 ```
 
-The development command starts Convex and TanStack Start. It does not send real email. Use
-Cloudflare's local email-event endpoint when testing the Worker handler.
+The development command builds and watches the component, then starts Mail's Convex backend and
+frontend. See [local setup](./docs/local-setup.md) for deployment selection and app environment files.
 
-The following Convex environment variables are required:
+| Command                           | Purpose                                                                  |
+| --------------------------------- | ------------------------------------------------------------------------ |
+| `pnpm run check`                  | Check formatting, lint, types, and tests across both workspaces          |
+| `pnpm run build`                  | Build the component and the Mail app through its Cloudflare build script |
+| `pnpm run component:test-package` | Install and test the packed package in a fresh consumer                  |
+| `pnpm run component:codegen`      | Generate component types using Mail's Convex project                     |
+| `pnpm run deploy:dry-run`         | Build and validate the Mail Worker without uploading it                  |
 
-| Name                 | Purpose                                                        |
-| -------------------- | -------------------------------------------------------------- |
-| `OWNER_EMAIL`        | The only email that can sign in                                |
-| `OWNER_SETUP_SECRET` | The one-time code required for first sign-up                   |
-| `MAIL_BRIDGE_SECRET` | Authenticates Worker and Convex requests and signs file grants |
-| `MAIL_WORKER_URL`    | Public URL of the deployed Worker                              |
+Cloudflare Workers Builds can keep its repository root at `/`. Root `build`, `deploy`, and
+`deploy:preview` commands delegate to Mail with `apps/mail` as the working directory. The Worker
+configuration, assets, and Convex deployment selection resolve there.
 
-The Worker uses `MAIL_BRIDGE_SECRET` and `MAIL_RECOVERY_ADDRESS` as secrets. The recovery address
-must be a verified Cloudflare Email Routing destination. It only receives a copy when storage or
-the Convex handoff fails. `wrangler.jsonc` supplies the Convex site URL and binds `MAIL_STORAGE`,
-`EMAIL`, and `ASSETS`.
-
-To create the two initial inboxes in a deployment, run:
-
-```sh
-pnpm exec convex run bootstrap:defaultInboxes
-```
-
-Add `--prod` for production.
-
-## Checks and deploys
-
-| Command                   | Purpose                                               |
-| ------------------------- | ----------------------------------------------------- |
-| `pnpm run check`          | Format, lint, type-check, and test the app            |
-| `pnpm run build`          | Run the complete Cloudflare build path                |
-| `pnpm run deploy:dry-run` | Build and validate a Worker upload without publishing |
-| `pnpm run deploy`         | Deploy the production Worker                          |
-
-Cloudflare Workers Builds deploys `main` to production. The standard build scripts select the
-branch's Convex deployment and preserve existing auth keys. For provider setup, use the
-[Worker Previews migration guide](https://samebase.com/docs/cloudflare-previews-migration).
-
-Mail previews use the `samebase-mail-previews` R2 bucket. The preview deploy command sets
-`CONVEX_SITE_URL` to the Convex URL from that branch's build. It also sets `MAIL_WORKER_URL` in
-that Convex preview. Production mail storage and email routing stay unchanged.
-
-Previews Base holds test runtime settings. The Worker and Convex preview need matching test
-`MAIL_BRIDGE_SECRET` values. Set the test `MAIL_BRIDGE_SECRET`, `OWNER_EMAIL`, and
-`OWNER_SETUP_SECRET` as Convex project defaults for preview deployments only. Restrict the
-Previews Base `EMAIL` binding to a verified test recipient. Do not reuse production secrets or
-route the live inbox to a preview.
-
-## Mail delivery rules
-
-- Unknown inboxes get a permanent SMTP rejection.
-- A parse failure still creates a visible raw-only message.
-- Displayed text and HTML bodies are capped at 512 KiB. The full raw message stays in R2.
-- Threads join only through `References` or `In-Reply-To`. Equal subjects stay separate.
-- An outbound timeout becomes `unknown` and does not retry automatically. This prevents duplicate
-  email when the provider accepted a send but its response was lost.
-- The reading pane loads the latest 10 messages in a thread to keep Convex responses bounded.
-- The app displays plain text. It does not render untrusted HTML.
+The [integration guide](./docs/integration.md) covers development across repositories and the
+production rollout. The [design and OpenSend review](./docs/email-component-design.md) records
+decisions, verification, and questions for reviewers.
 
 ## License
 
-Licensed under the [Apache License 2.0](./LICENSE).
+Licensed under [Apache License 2.0](./LICENSE).

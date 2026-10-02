@@ -59,7 +59,7 @@ remove the line when you edit the file.
 This project uses [Convex](https://convex.dev) as its backend.
 
 When working on Convex code, **always read
-`convex/_generated/ai/guidelines.md` first** for important guidelines on
+`apps/mail/convex/_generated/ai/guidelines.md` first** for important guidelines on
 how to correctly use Convex APIs and patterns. The file contains rules that
 override what you may have learned about Convex from training data.
 
@@ -67,3 +67,11 @@ Convex agent skills for common tasks can be installed by running
 `npx convex ai-files install`.
 
 <!-- convex-ai-end -->
+
+## Workspace layout
+
+- `packages/convex-cloudflare-email-inbox` is the publishable component.
+- `apps/mail` is the Mail reference app, including its Convex wrappers, frontend, Worker, and app scripts.
+- The root owns shared tooling and commands. Run `pnpm run dev`, `pnpm run check`, and `pnpm run build` here.
+- Run app-specific Convex commands with `pnpm --filter samebase-mail exec convex ...`.
+- Keep the installed Convex component name `mail` to preserve its data namespace.
