@@ -227,10 +227,10 @@ to a verified recovery address. Provisioning, recovery policy, and orphan cleanu
 
 ## Tests
 
-Outgoing attachments have automated coverage but are not yet live-verified. Before publication,
-send a message with an attachment to an external mailbox and reply to it. Verify the attachment
-bytes, compare Cloudflare's returned message ID with the received email's `Message-ID`, and confirm
-that the reply joins the original thread. If the provider omits a usable message ID, replies to
+The October 2 live test verified attachment bytes, matching provider and received message IDs, and
+reply threading between two owner-controlled Cloudflare inboxes. Attachment sends use raw MIME with
+base64 file parts; other sends use Cloudflare's structured API. An independent external mailbox
+roundtrip remains a publication check. If the provider omits a usable message ID, replies to
 conversations started here can form a separate thread. That case remains a release blocker.
 
 ```ts
