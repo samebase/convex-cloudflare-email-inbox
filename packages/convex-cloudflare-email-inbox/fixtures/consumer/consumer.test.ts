@@ -136,8 +136,8 @@ it("receives MIME mail, queries it, and replies with an R2 attachment through pa
       recipients: ["reply@example.net", "archive@example.com"],
     });
     expect(request.url).toContain("/email/sending/send_raw");
-    expect(body.mime_message).toContain("In-Reply-To: <question@example.net>");
-    expect(body.mime_message).toContain("References: <question@example.net>");
+    expect(body.mime_message).toMatch(/In-Reply-To:\s+<question@example\.net>/);
+    expect(body.mime_message).toMatch(/References:\s+<question@example\.net>/);
     expect(body.mime_message).toContain("filename*0*=UTF-8''answer.txt");
     expect(body.mime_message).toContain("QW5zd2Vy");
     expect(body.mime_message).not.toContain("archive@example.com");

@@ -68,7 +68,8 @@ resend messages whose delivery is uncertain. The October 2 Mail rollout had no q
 messages, so no queue drain or data migration was needed.
 
 Mail's sending deployment needs the Cloudflare account and Email Sending token before switching
-off its old Worker bridge. Inbound routing, R2 keys, and object signing stay unchanged. The production
+off its old Worker bridge. Use a separate Email Sending token for each app so each credential can be
+replaced independently. Inbound routing, R2 keys, and object signing stay unchanged. The production
 Cloudflare build command was restored to `pnpm run build` on October 2 after the reviewed extraction
 was merged and the sending credentials were configured. Do not deploy the old app schema over component data.
 
@@ -92,5 +93,5 @@ matched the received message ID. A reply from the Mail UI was accepted, received
 same two inbox threads, with two messages in each. These tests used only controlled test messages
 between two owner-controlled inboxes, not an independent external mail provider.
 
-The source repository remains private. npm publication and the Samebase consumer release remain
+The source repository is public. npm publication and the Samebase consumer release remain
 separate release steps.
