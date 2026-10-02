@@ -32,6 +32,8 @@ type Env = {
   readonly CONVEX_SITE_URL: string;
   readonly CLOUDFLARE_EMAIL_ACCOUNT_ID: string | undefined;
   readonly CLOUDFLARE_EMAIL_API_TOKEN: string | undefined;
+  readonly MAIL_BRIDGE_SECRET: string | undefined;
+  readonly MAIL_WORKER_URL: string | undefined;
 };
 
 /**

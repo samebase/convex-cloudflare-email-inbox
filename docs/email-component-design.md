@@ -182,12 +182,11 @@ required before the Samebase integration can ship.
    temporary link with that exact version and regenerate its lockfile.
 3. Finish the Samebase integration PR. Feedback now distinguishes queued delivery; account deletion
    still finalizes when acceptance is not confirmed. Preserve these tested outcomes.
-4. Before Mail cutover, drain old scheduled sends and confirm the new sending credentials are set.
-   Pending jobs targeting the deleted host action cannot execute after that action disappears.
+4. Mail cutover completed on October 2 with no queued or sending messages. The sending credentials
+   are configured. The [integration guide](./integration.md#october-2-live-rollout) records the live tests.
 5. Verify both consumers after cutover before claiming operational completion.
 
-The production Cloudflare build command is already held pending the extraction PR. Keep that hold
-until the reviewed rollout is ready. Do not deploy the old app schema over component data.
+The production Cloudflare build hold was removed on October 2. Do not deploy the old app schema over component data.
 The local development and cutover details are in [the integration guide](./integration.md).
 
 ## Questions for reviewers

@@ -63,11 +63,34 @@ confirmed HTTP 429 responses only, at most three provider attempts. Uncertain ou
 Samebase's internal notification history survives user-account scrubbing, as documented in its
 privacy policy and deletion spec. No public history endpoint is added.
 
-Before the Mail update, stop new sends and let all old queued and sending messages finish. Confirm
-that no scheduled `internal.delivery.send` actions remain before deploying the removal of that action.
-Its pending jobs cannot run after removal. Do not resend messages whose delivery is uncertain.
+When removing a scheduled action, first check for queued or running jobs that target it. Do not
+resend messages whose delivery is uncertain. The October 2 Mail rollout had no queued or sending
+messages, so no queue drain or data migration was needed.
 
 Mail's sending deployment needs the Cloudflare account and Email Sending token before switching
 off its old Worker bridge. Inbound routing, R2 keys, and object signing stay unchanged. The production
-Cloudflare build command is already held pending the component extraction PR; restore it only after
-the reviewed package and credentials are ready. Do not deploy the old app schema over component data.
+Cloudflare build command was restored to `pnpm run build` on October 2 after the reviewed extraction
+was merged and the sending credentials were configured. Do not deploy the old app schema over component data.
+
+## October 2 live rollout
+
+The production app uses the installed `mail` component. Before and after deployment, all seven mail
+tables had identical exported bytes. Existing messages, inboxes, login, and R2 files were preserved.
+The backup remains private and is not part of this repository.
+
+The existing `json.md` sending registration was enabled but returned `sending_disabled`. Resetting
+that registration restored sending. Its Cloudflare registration ID changed; the expected DNS records,
+public DNS, and active Email Routing configuration did not change. This result does not establish
+when or why Cloudflare's previous registration stopped working.
+
+The first live text attachment roundtrip changed 37 bytes to 38. Structured sending produced a 7bit
+MIME attachment, which the receiving parser decoded with an extra newline. Attachment sends now use
+Cloudflare's raw MIME API with base64 parts. Sends without attachments keep the structured API.
+
+The repeated live test preserved all 37 bytes and the SHA-256 digest. Cloudflare's returned message ID
+matched the received message ID. A reply from the Mail UI was accepted, received, and stored in the
+same two inbox threads, with two messages in each. These tests used only controlled test messages
+between two owner-controlled inboxes, not an independent external mail provider.
+
+The source repository remains private. npm publication and the Samebase consumer release remain
+separate release steps.

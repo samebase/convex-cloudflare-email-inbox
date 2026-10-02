@@ -106,8 +106,8 @@ Its integration cannot ship until the reviewed package has a portable released v
 No real email was sent, production deployment ran, or npm package was published in this update.
 The last npm authentication check was unauthorized and was not repeated here. Before publication,
 run a controlled live send and retain its redacted receipt. Then resolve npm access, publish, replace
-the local link with the exact version, and finish the Samebase integration PR. Keep Mail's production
-build hold until the existing cutover checks in the integration guide are complete.
+the local link with the exact version, and finish the Samebase integration PR. Mail's production
+build hold was removed during the later [October 2 rollout](./integration.md#october-2-live-rollout).
 
 Mail still provides a plain-text compose UI. HTML, Bcc, Reply-To, and outgoing attachments are package
 API capabilities, not new Mail editor controls. This update did not run a browser UI check.
