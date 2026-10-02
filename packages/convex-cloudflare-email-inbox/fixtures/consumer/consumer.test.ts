@@ -130,23 +130,17 @@ it("receives MIME mail, queries it, and replies with an R2 attachment through pa
     },
   };
   const provider = vi.fn(async (request: Request) => {
-    expect(await request.json()).toMatchObject({
+    const body = await request.json();
+    expect(body).toMatchObject({
       from: "support@example.com",
-      to: ["reply@example.net"],
-      subject: "Re: Question",
-      text: "Answer",
-      html: "<p>Answer</p>",
-      bcc: ["archive@example.com"],
-      headers: { "In-Reply-To": "<question@example.net>", References: "<question@example.net>" },
-      attachments: [
-        {
-          filename: "answer.txt",
-          type: "text/plain",
-          content: "QW5zd2Vy",
-          disposition: "attachment",
-        },
-      ],
+      recipients: ["reply@example.net", "archive@example.com"],
     });
+    expect(request.url).toContain("/email/sending/send_raw");
+    expect(body.mime_message).toContain("In-Reply-To: <question@example.net>");
+    expect(body.mime_message).toContain("References: <question@example.net>");
+    expect(body.mime_message).toContain("filename*0*=UTF-8''answer.txt");
+    expect(body.mime_message).toContain("QW5zd2Vy");
+    expect(body.mime_message).not.toContain("archive@example.com");
     return Response.json({
       success: true,
       result: {

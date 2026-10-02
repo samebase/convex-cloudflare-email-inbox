@@ -4,6 +4,7 @@ packages:
 patchedDependencies:
   convex-helpers@0.1.124: patches/convex-helpers@0.1.124.patch
 allowBuilds:
+  core-js-pure: false
   esbuild: true
   msw: true
   sharp: false

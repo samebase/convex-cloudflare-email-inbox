@@ -5,6 +5,7 @@ import {
 } from "cloudflare/resources/email-sending/email-sending";
 import { createClient } from "cloudflare/tree-shakable";
 import { Infer, v } from "convex/values";
+import { createMimeMessage, Mailbox } from "mimetext/browser";
 import { z } from "zod";
 import { outboundAttachment } from "./messageTypes";
 import { recipientResults } from "./schema";
@@ -118,12 +119,75 @@ export async function sendCloudflareEmail(args: {
     logLevel: "off",
   });
   try {
-    const response = await client.emailSending
-      .send({
-        account_id: args.accountId,
-        ...body,
-      })
-      .asResponse();
+    let response: Response;
+    if (args.attachments?.length) {
+      // Structured sending can convert text attachments to 7bit. Keep file bytes base64-encoded.
+      const mime = createMimeMessage();
+      mime.setSender({
+        addr: args.payload.from,
+        ...(args.payload.senderName ? { name: args.payload.senderName } : {}),
+      });
+      mime.setTo(args.payload.to);
+      if (args.payload.cc.length) mime.setCc(args.payload.cc);
+      // Bcc belongs only in the SMTP envelope, never in the raw message headers.
+      mime.setSubject(args.payload.subject);
+      mime.setHeaders({
+        ...headers,
+        ...(references.length ? { References: references.join("\r\n ") } : {}),
+      });
+      if (args.payload.replyTo) mime.setHeader("Reply-To", new Mailbox(args.payload.replyTo));
+      mime.addMessage({
+        contentType: "text/plain",
+        encoding: "base64",
+        data: mime.toBase64(args.payload.text).replace(/.{76}/g, "$&\r\n"),
+      });
+      if (args.payload.html) {
+        mime.addMessage({
+          contentType: "text/html",
+          encoding: "base64",
+          data: mime.toBase64(args.payload.html).replace(/.{76}/g, "$&\r\n"),
+        });
+      }
+      for (const attachment of args.attachments) {
+        const filename = encodeURIComponent(attachment.filename).replace(
+          /['()*]/g,
+          (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+        );
+        const part = mime.addAttachment({
+          filename: attachment.filename,
+          contentType: attachment.type,
+          encoding: "base64",
+          data: attachment.content.replace(/.{76}/g, "$&\r\n"),
+        });
+        part.setHeader("Content-Type", attachment.type);
+        const filenameParts = filename.match(/(?:%[0-9A-F]{2}|[^%]){1,50}/g) ?? [""];
+        part.setHeader(
+          "Content-Disposition",
+          `attachment;\r\n ${filenameParts.map((value, index) => `filename*${index}*=${index === 0 ? "UTF-8''" : ""}${value}`).join(";\r\n ")}`,
+        );
+      }
+      // MIMEText does not fold Subject, so emit short UTF-8 encoded words.
+      const subjectWords = (args.payload.subject.match(/.{1,10}/gu) ?? [""]).map(
+        (value) => `=?UTF-8?B?${mime.toBase64(value)}?=`,
+      );
+      const rawBody = {
+        from: args.payload.from,
+        recipients: [...args.payload.to, ...args.payload.cc, ...args.payload.bcc],
+        mime_message: mime
+          .asRaw()
+          .replace(/^Subject:.*$/m, `Subject: ${subjectWords.join("\r\n ")}`),
+      };
+      if (new TextEncoder().encode(JSON.stringify(rawBody)).byteLength > MAX_OUTBOUND_BYTES) {
+        return { kind: "rejected", code: "message_too_large" };
+      }
+      response = await client.emailSending
+        .sendRaw({ account_id: args.accountId, ...rawBody })
+        .asResponse();
+    } else {
+      response = await client.emailSending
+        .send({ account_id: args.accountId, ...body })
+        .asResponse();
+    }
     const rawReceipt: unknown = await response.json();
     const parsed = cloudflareReceipt.safeParse(rawReceipt);
     if (!parsed.success) {

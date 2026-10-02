@@ -10,6 +10,7 @@ import {
 } from "../../tests/cloudflareEmail.fixtures";
 import schema from "./schema";
 import { verifyObjectGrant } from "../r2";
+import PostalMime from "postal-mime";
 
 const modules = import.meta.glob([
   "./**/*.ts",
@@ -434,19 +435,14 @@ describe("outbound R2 attachments", () => {
       expiresAt: Date.now() + 5 * 60_000,
     });
     const [providerInput, providerOptions] = request.mock.calls[1];
-    expect(await new Request(providerInput, providerOptions).json()).toMatchObject({
-      bcc: ["private@example.com"],
-      reply_to: "support@example.com",
-      html: "<p>Body</p>",
-      attachments: [
-        {
-          content: btoa("report"),
-          filename: "report.txt",
-          type: "text/plain",
-          disposition: "attachment",
-        },
-      ],
-    });
+    const providerBody = await new Request(providerInput, providerOptions).json();
+    expect(providerBody.recipients).toContain("private@example.com");
+    expect(providerBody.mime_message).not.toContain("private@example.com");
+    const parsed = await PostalMime.parse(providerBody.mime_message);
+    expect(parsed.replyTo?.[0]?.address).toBe("support@example.com");
+    expect(parsed.html).toBe("<p>Body</p>");
+    expect(parsed.attachments[0]?.filename).toBe("report.txt");
+    expect(parsed.attachments[0]?.content).toEqual(bytes.buffer);
   });
 
   it.each([

@@ -2,6 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { sendCloudflareEmail } from "./cloudflareEmail";
+import PostalMime from "postal-mime";
 import {
   cloudflareSendReceipt,
   cloudflareSendRejection,
@@ -119,25 +120,57 @@ describe("Cloudflare structured sending", () => {
     expect(request).toHaveBeenCalledOnce();
   });
 
-  it("sends encoded attachments without exposing their storage references", async () => {
-    const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json(cloudflareSendReceipt));
-    vi.stubGlobal("fetch", request);
-    const attachment = {
-      content: "dGVzdA==",
-      filename: "report.txt",
-      type: "text/plain",
-      disposition: "attachment" as const,
-    };
-    await sendCloudflareEmail({
-      apiToken: "test-token",
-      accountId: "test-account",
-      payload,
-      attachments: [attachment],
-    });
+  it.each([
+    ["text/plain", "Samebase Mail live attachment check.\n"],
+    ["application/octet-stream", "\u0000\u0001\u00ff\r\n"],
+  ])(
+    "preserves %s attachment bytes through raw MIME without exposing Bcc",
+    async (type, content) => {
+      const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json(cloudflareSendReceipt));
+      vi.stubGlobal("fetch", request);
+      const attachment = {
+        content: btoa(content),
+        filename: `Résumé "Q1" ${"é".repeat(200)}.txt`,
+        type,
+        disposition: "attachment" as const,
+      };
+      await sendCloudflareEmail({
+        apiToken: "test-token",
+        accountId: "test-account",
+        payload: { ...payload, subject: "📨".repeat(200), cc: ["copy@example.com"] },
+        attachments: [attachment],
+      });
 
-    const [url, options] = request.mock.calls[0];
-    expect(await new Request(url, options).json()).toMatchObject({ attachments: [attachment] });
-  });
+      const [url, options] = request.mock.calls[0];
+      expect(url).toBe(
+        "https://api.cloudflare.com/client/v4/accounts/test-account/email/sending/send_raw",
+      );
+      const body = await new Request(url, options).json();
+      expect(body.recipients).toEqual([...payload.to, "copy@example.com", ...payload.bcc]);
+      expect(
+        body.mime_message
+          .split("\r\n")
+          .every((line: string) => new TextEncoder().encode(line).byteLength <= 998),
+      ).toBe(true);
+      expect(body.mime_message).not.toContain("Bcc:");
+      expect(body.mime_message).not.toContain(payload.bcc[0]);
+      expect(body.mime_message).toContain("Content-Transfer-Encoding: base64");
+      const parsed = await PostalMime.parse(body.mime_message, {
+        attachmentEncoding: "arraybuffer",
+      });
+      expect(parsed.attachments[0]?.filename).toBe(attachment.filename);
+      expect(parsed.attachments[0]?.content).toEqual(
+        Uint8Array.from(content, (character) => character.charCodeAt(0)).buffer,
+      );
+      expect(parsed.text).toBe(payload.text);
+      expect(parsed.html).toBe(payload.html);
+      expect(parsed.inReplyTo).toBe(payload.inReplyTo);
+      expect(parsed.references).toBe(payload.references.join(" "));
+      expect(parsed.from?.name).toBe(payload.senderName);
+      expect(parsed.replyTo?.[0]?.address).toBe(payload.replyTo);
+      expect(parsed.subject).toBe("📨".repeat(200));
+    },
+  );
 
   it("does not resend after losing the provider response", async () => {
     const request = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Lost response"));
