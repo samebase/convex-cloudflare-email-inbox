@@ -135,11 +135,13 @@ export async function sendCloudflareEmail(args: {
         ...(references.length ? { References: `\r\n ${references.join("\r\n ")}` } : {}),
       });
       if (args.payload.replyTo) mime.setHeader("Reply-To", new Mailbox(args.payload.replyTo));
-      mime.addMessage({
-        contentType: "text/plain",
-        encoding: "base64",
-        data: mime.toBase64(args.payload.text).replace(/.{76}/g, "$&\r\n"),
-      });
+      if (args.payload.text) {
+        mime.addMessage({
+          contentType: "text/plain",
+          encoding: "base64",
+          data: mime.toBase64(args.payload.text).replace(/.{76}/g, "$&\r\n"),
+        });
+      }
       if (args.payload.html) {
         mime.addMessage({
           contentType: "text/html",

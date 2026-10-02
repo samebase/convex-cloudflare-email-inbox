@@ -195,6 +195,27 @@ describe("Cloudflare structured sending", () => {
     },
   );
 
+  it("sends HTML-only attachment mail without an empty plain-text alternative", async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json(cloudflareSendReceipt));
+    vi.stubGlobal("fetch", request);
+
+    const result = await sendCloudflareEmail({
+      apiToken: "test-token",
+      accountId: "test-account",
+      payload: { ...payload, text: "" },
+      attachments: [{ filename: "report.txt", type: "text/plain", content: btoa("Report\n") }],
+    });
+
+    expect(result.kind).toBe("accepted");
+    const [url, options] = request.mock.calls[0];
+    const body = await new Request(url, options).json();
+    const parsed = await PostalMime.parse(body.mime_message, { attachmentEncoding: "arraybuffer" });
+    expect(parsed.html).toBe(payload.html);
+    expect(parsed.text).toBeUndefined();
+    expect(parsed.attachments[0]?.filename).toBe("report.txt");
+    expect(parsed.attachments[0]?.content).toEqual(new TextEncoder().encode("Report\n").buffer);
+  });
+
   it("does not resend after losing the provider response", async () => {
     const request = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Lost response"));
     vi.stubGlobal("fetch", request);
