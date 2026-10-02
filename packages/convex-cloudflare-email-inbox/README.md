@@ -5,8 +5,6 @@ a Convex component. It sends through the official Cloudflare Email Service SDK i
 runtime. Sending without attachments does not require a Worker or R2 bucket. Receiving stores the
 complete raw email and named attachments in your R2 bucket, with inbox data in your Convex deployment.
 
-The first registry release is pending. Use a workspace dependency or local link until publication.
-
 ## Install
 
 ```sh

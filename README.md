@@ -14,9 +14,6 @@ The [package guide](./packages/convex-cloudflare-email-inbox/README.md) covers i
 Cloudflare credentials, sending, history, and tests. Sending runs inside Convex. Receiving uses
 the package's Cloudflare Worker helpers and your R2 bucket. Mail is the reference integration.
 
-The first package release is pending. The workspace package is available for local integration;
-the registry installation command applies after publication.
-
 ## Repository layout
 
 ```text

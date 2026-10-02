@@ -60,8 +60,9 @@ export function safeRfcMessageId(value: string | null) {
     return null;
   }
   const normalized = value.trim();
+  // A message ID must fit one continuation line, including its leading space.
   return /^<[^<>\s@]+@[^<>\s@]+>$/.test(normalized) &&
-    new TextEncoder().encode(normalized).byteLength <= 2_048
+    new TextEncoder().encode(normalized).byteLength <= 997
     ? normalized
     : null;
 }
@@ -123,17 +124,15 @@ export async function sendCloudflareEmail(args: {
     if (args.attachments?.length) {
       // Structured sending can convert text attachments to 7bit. Keep file bytes base64-encoded.
       const mime = createMimeMessage();
-      mime.setSender({
-        addr: args.payload.from,
-        ...(args.payload.senderName ? { name: args.payload.senderName } : {}),
-      });
+      mime.setSender(args.payload.from);
       mime.setTo(args.payload.to);
       if (args.payload.cc.length) mime.setCc(args.payload.cc);
       // Bcc belongs only in the SMTP envelope, never in the raw message headers.
       mime.setSubject(args.payload.subject);
       mime.setHeaders({
         ...headers,
-        ...(references.length ? { References: references.join("\r\n ") } : {}),
+        ...(inReplyTo ? { "In-Reply-To": `\r\n ${inReplyTo}` } : {}),
+        ...(references.length ? { References: `\r\n ${references.join("\r\n ")}` } : {}),
       });
       if (args.payload.replyTo) mime.setHeader("Reply-To", new Mailbox(args.payload.replyTo));
       mime.addMessage({
@@ -166,16 +165,22 @@ export async function sendCloudflareEmail(args: {
           `attachment;\r\n ${filenameParts.map((value, index) => `filename*${index}*=${index === 0 ? "UTF-8''" : ""}${value}`).join(";\r\n ")}`,
         );
       }
-      // MIMEText does not fold Subject, so emit short UTF-8 encoded words.
-      const subjectWords = (args.payload.subject.match(/.{1,10}/gu) ?? [""]).map(
-        (value) => `=?UTF-8?B?${mime.toBase64(value)}?=`,
-      );
+      // MIMEText does not fold encoded words in Subject or sender names.
+      const encodeHeaderWords = (value: string) =>
+        (value.match(/.{1,9}/gsu) ?? [""])
+          .map((word) => `=?UTF-8?B?${mime.toBase64(word)}?=`)
+          .join("\r\n ");
       const rawBody = {
         from: args.payload.from,
         recipients: [...args.payload.to, ...args.payload.cc, ...args.payload.bcc],
         mime_message: mime
           .asRaw()
-          .replace(/^Subject:.*$/m, `Subject: ${subjectWords.join("\r\n ")}`),
+          .replace(/^Subject:.*$/m, () => `Subject: ${encodeHeaderWords(args.payload.subject)}`)
+          .replace(/^From:.*$/m, (header) =>
+            args.payload.senderName
+              ? `From: ${encodeHeaderWords(args.payload.senderName)}\r\n <${args.payload.from}>`
+              : header,
+          ),
       };
       if (new TextEncoder().encode(JSON.stringify(rawBody)).byteLength > MAX_OUTBOUND_BYTES) {
         return { kind: "rejected", code: "message_too_large" };

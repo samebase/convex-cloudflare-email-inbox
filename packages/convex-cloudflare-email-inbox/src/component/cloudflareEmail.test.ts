@@ -121,11 +121,16 @@ describe("Cloudflare structured sending", () => {
   });
 
   it.each([
-    ["text/plain", "Samebase Mail live attachment check.\n"],
-    ["application/octet-stream", "\u0000\u0001\u00ff\r\n"],
+    ["text/plain", "Samebase Mail live attachment check.\n", "漢".repeat(255), payload.inReplyTo],
+    [
+      "application/octet-stream",
+      "\u0000\u0001\u00ff\r\n",
+      `${"📨".repeat(120)}\u2028Team\u2029`,
+      `<${"a".repeat(974)}@example.com>`,
+    ],
   ])(
     "preserves %s attachment bytes through raw MIME without exposing Bcc",
-    async (type, content) => {
+    async (type, content, senderName, inReplyTo) => {
       const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json(cloudflareSendReceipt));
       vi.stubGlobal("fetch", request);
       const attachment = {
@@ -137,7 +142,14 @@ describe("Cloudflare structured sending", () => {
       await sendCloudflareEmail({
         apiToken: "test-token",
         accountId: "test-account",
-        payload: { ...payload, subject: "📨".repeat(200), cc: ["copy@example.com"] },
+        payload: {
+          ...payload,
+          senderName,
+          subject: "📨".repeat(200),
+          cc: ["copy@example.com"],
+          inReplyTo,
+          references: [inReplyTo],
+        },
         attachments: [attachment],
       });
 
@@ -155,6 +167,17 @@ describe("Cloudflare structured sending", () => {
       expect(body.mime_message).not.toContain("Bcc:");
       expect(body.mime_message).not.toContain(payload.bcc[0]);
       expect(body.mime_message).toContain("Content-Transfer-Encoding: base64");
+      expect(
+        [...body.mime_message.matchAll(/=\?utf-8\?B\?[^?]*\?=/gi)].every(
+          (match) => match[0].length <= 75,
+        ),
+      ).toBe(true);
+      expect(
+        body.mime_message
+          .split("\r\n")
+          .filter((line: string) => line.includes("=?UTF-8?B?"))
+          .every((line: string) => new TextEncoder().encode(line).byteLength <= 76),
+      ).toBe(true);
       const parsed = await PostalMime.parse(body.mime_message, {
         attachmentEncoding: "arraybuffer",
       });
@@ -164,9 +187,9 @@ describe("Cloudflare structured sending", () => {
       );
       expect(parsed.text).toBe(payload.text);
       expect(parsed.html).toBe(payload.html);
-      expect(parsed.inReplyTo).toBe(payload.inReplyTo);
-      expect(parsed.references).toBe(payload.references.join(" "));
-      expect(parsed.from?.name).toBe(payload.senderName);
+      expect(parsed.inReplyTo).toBe(inReplyTo);
+      expect(parsed.references).toBe(inReplyTo);
+      expect(parsed.from?.name).toBe(senderName);
       expect(parsed.replyTo?.[0]?.address).toBe(payload.replyTo);
       expect(parsed.subject).toBe("📨".repeat(200));
     },
@@ -232,8 +255,9 @@ describe("Cloudflare structured sending", () => {
   it("removes unsafe threading values and bounds References to the provider header limit", async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json(cloudflareSendReceipt));
     vi.stubGlobal("fetch", request);
-    const oldId = `<${"a".repeat(1_980)}@example.com>`;
-    const newId = `<${"b".repeat(1_980)}@example.com>`;
+    const oldId = `<${"a".repeat(980)}@example.com>`;
+    const middleId = `<${"b".repeat(980)}@example.com>`;
+    const newId = `<${"c".repeat(980)}@example.com>`;
 
     await sendCloudflareEmail({
       apiToken: "test-token",
@@ -241,13 +265,19 @@ describe("Cloudflare structured sending", () => {
       payload: {
         ...payload,
         inReplyTo: "<original@example.com>\r\nBcc: private@example.com",
-        references: [oldId, "opaque-provider-id", newId],
+        references: [
+          oldId,
+          `<${"d".repeat(998)}@example.com>`,
+          "opaque-provider-id",
+          middleId,
+          newId,
+        ],
       },
     });
 
     const [url, options] = request.mock.calls[0];
     const sentBody: unknown = await new Request(url, options).json();
-    expect(sentBody).toMatchObject({ headers: { References: newId } });
+    expect(sentBody).toMatchObject({ headers: { References: `${middleId} ${newId}` } });
     expect(sentBody).not.toMatchObject({ headers: { "In-Reply-To": expect.anything() } });
   });
 });
