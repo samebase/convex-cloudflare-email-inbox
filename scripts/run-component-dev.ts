@@ -34,6 +34,12 @@ const watchers = [componentRoot, uiRoot].map((cwd) =>
     { cwd, stdio: "inherit" },
   ),
 );
+watchers.push(
+  spawn(process.execPath, [vitePlusEntrypoint, "run", "watch:styles"], {
+    cwd: uiRoot,
+    stdio: "inherit",
+  }),
+);
 const app = spawn(process.execPath, [`./scripts/${runner}`, ...forwardedArgs], {
   cwd: appRoot,
   stdio: "inherit",

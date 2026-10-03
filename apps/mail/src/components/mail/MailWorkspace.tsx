@@ -3,13 +3,33 @@ import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { ArrowLeft, Inbox, LogOut, MailPlus, Plus, Send } from "lucide-react";
-import { EmailMessage, EmailMonitor } from "@samebase/convex-cloudflare-email-inbox-ui";
+import {
+  EmailMessage,
+  EmailMonitor,
+  type EmailButtonProps,
+} from "@samebase/convex-cloudflare-email-inbox-ui";
 import "@samebase/convex-cloudflare-email-inbox-ui/styles.css";
 import { type FormEvent, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "#components/ui/button";
 import { Input } from "#components/ui/input";
 import { Textarea } from "#components/ui/textarea";
+import { cn } from "#lib/utils";
+
+function EmailButton({ appearance, className, ...props }: EmailButtonProps) {
+  return (
+    <Button
+      {...props}
+      variant={appearance === "text" ? "link" : "outline"}
+      className={cn(
+        appearance === "text" && "h-auto justify-start p-0 text-left whitespace-normal",
+        className,
+      )}
+    />
+  );
+}
+
+const emailControls = { Button: EmailButton };
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -82,7 +102,7 @@ export function MailWorkspace() {
   };
 
   return (
-    <main className="flex h-dvh min-h-0 flex-col bg-background">
+    <main className="flex h-dvh min-h-0 flex-col bg-background [--sb-email-border:var(--border)] [--sb-email-muted:var(--muted-foreground)] [--sb-email-selected:var(--muted)]">
       <header className="flex h-12 shrink-0 items-center justify-between border-b px-3">
         <div className="flex items-center gap-2 font-medium">
           <span className="grid size-7 place-items-center bg-primary text-primary-foreground">
@@ -121,7 +141,11 @@ export function MailWorkspace() {
 
       {view === "history" ? (
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
-          <EmailMonitor api={api.emailMonitor} authorizeDownload={api.objects.authorizeDownload} />
+          <EmailMonitor
+            api={api.emailMonitor}
+            authorizeDownload={api.objects.authorizeDownload}
+            controls={emailControls}
+          />
         </div>
       ) : (
         <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[14rem_22rem_minmax(0,1fr)]">
@@ -421,6 +445,7 @@ function MessagePane({
             <EmailMessage
               message={message}
               onDownload={(object) => authorizeDownload({ object })}
+              controls={emailControls}
             />
           </div>
         ))}

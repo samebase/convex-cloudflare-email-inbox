@@ -1,168 +1,132 @@
-.sb-email {
-  color: inherit;
-  font: inherit;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  --email-border: var(--border, #d4d4d4);
-  --email-muted: var(--muted-foreground, #525252);
-}
+@import "tailwindcss/theme.css" theme(reference inline);
+@layer theme, base, components, utilities;
 
-.sb-email button,
-.sb-email select {
-  color: inherit;
-  background: transparent;
-  font: inherit;
-  border: 1px solid var(--email-border);
-  padding: 0.45rem 0.65rem;
-  cursor: pointer;
-}
+@layer components {
+  .sb-email {
+    @apply min-w-0;
+    color: inherit;
+    font: inherit;
+    overflow-wrap: anywhere;
+  }
 
-.sb-email select {
-  font-size: max(1em, 16px);
-}
-.sb-email button:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-.sb-email :focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 3px;
-}
-.sb-email-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  padding-block: 0.5rem 1.5rem;
-}
-.sb-email-filters label {
-  display: grid;
-  gap: 0.4rem;
-  min-width: 0;
-}
-.sb-email-filters select {
-  max-width: 100%;
-}
-.sb-email-history {
-  overflow-x: auto;
-}
-.sb-email table {
-  border-collapse: collapse;
-  width: 100%;
-  min-width: 48rem;
-  font-size: 0.875rem;
-}
-.sb-email th {
-  white-space: nowrap;
-  text-align: left;
-  font-weight: 500;
-  color: var(--email-muted);
-}
-.sb-email th,
-.sb-email td {
-  padding: 0.75rem 0.8rem;
-  vertical-align: top;
-}
-.sb-email th:first-child,
-.sb-email td:first-child {
-  padding-left: 0;
-  min-width: 12rem;
-}
-.sb-email thead,
-.sb-email tbody tr:not(:last-child) {
-  border-bottom: 1px solid var(--email-border);
-}
-.sb-email td {
-  max-width: 20rem;
-}
-.sb-email time {
-  white-space: nowrap;
-}
-.sb-email tr[data-selected="true"] {
-  background: var(--muted, #f5f5f5);
-}
-.sb-email .sb-email-subject {
-  border: 0;
-  padding: 0;
-  text-align: left;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-.sb-email-secondary {
-  display: block;
-  color: var(--email-muted);
-  font-size: 0.875em;
-  margin-top: 0.25rem;
-}
-.sb-email-more {
-  margin-block: 1rem;
-}
-.sb-email-empty {
-  color: var(--email-muted);
-  padding-block: 1rem;
-}
-.sb-email-reader {
-  border-top: 1px solid var(--email-border);
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-}
-.sb-email-reader-heading {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-.sb-email-reader-heading h2 {
-  font-size: 1.125rem;
-  font-weight: 500;
-  margin: 0;
-}
-.sb-email-reader-heading button {
-  flex-shrink: 0;
-}
-.sb-email-metadata {
-  display: grid;
-  gap: 0.4rem;
-  margin: 0;
-  font-size: 0.875rem;
-}
-.sb-email-metadata > div {
-  display: grid;
-  grid-template-columns: minmax(5rem, 9rem) minmax(0, 1fr);
-  gap: 1rem;
-}
-.sb-email-metadata dt {
-  color: var(--email-muted);
-}
-.sb-email-metadata dd {
-  margin: 0;
-}
-.sb-email-delivery {
-  margin-block: 1rem;
-  font-size: 0.875rem;
-}
-.sb-email-delivery p {
-  margin-block: 0 0.75rem;
-}
-.sb-email-body {
-  white-space: pre-wrap;
-  line-height: 1.6;
-  margin-block: 1.5rem;
-}
-.sb-email-attachments {
-  display: grid;
-  gap: 0.75rem;
-  list-style: none;
-  padding: 0;
-  margin-block: 1rem;
-}
-.sb-email-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  .sb-email-button,
+  .sb-email-select {
+    @apply px-3 py-2;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    border: 1px solid var(--sb-email-border, #d4d4d4);
+    cursor: pointer;
+  }
+  .sb-email-select {
+    @apply max-w-full;
+    font-size: max(1em, 16px);
+  }
+  .sb-email-button:disabled {
+    @apply cursor-default opacity-60;
+  }
+  .sb-email-button:focus-visible,
+  .sb-email-select:focus-visible,
+  .sb-email-history:focus-visible,
+  .sb-email-reader:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+  .sb-email-button[data-appearance="text"] {
+    @apply p-0 text-left underline;
+    border: 0;
+    text-underline-offset: 0.2em;
+  }
+  .sb-email-filters {
+    @apply flex flex-wrap gap-4 pt-2 pb-6;
+  }
+  .sb-email-filter {
+    @apply grid min-w-0 gap-2;
+  }
+  .sb-email-history {
+    @apply overflow-x-auto;
+  }
+  .sb-email table {
+    @apply w-full border-collapse text-sm;
+    min-width: 48rem;
+  }
+  .sb-email th {
+    @apply text-left whitespace-nowrap;
+    font-weight: theme(fontWeight.medium);
+    color: var(--sb-email-muted, #525252);
+  }
+  .sb-email th,
+  .sb-email td {
+    @apply px-3 py-3 align-top;
+  }
+  .sb-email th:first-child,
+  .sb-email td:first-child {
+    @apply min-w-48 pl-0;
+  }
+  .sb-email thead,
+  .sb-email tbody tr:not(:last-child) {
+    border-bottom: 1px solid var(--sb-email-border, #d4d4d4);
+  }
+  .sb-email td {
+    @apply max-w-80;
+  }
+  .sb-email time {
+    @apply whitespace-nowrap;
+  }
+  .sb-email tr[data-selected="true"] {
+    background: var(--sb-email-selected, #f5f5f5);
+  }
+  .sb-email-secondary {
+    @apply mt-1 block;
+    color: var(--sb-email-muted, #525252);
+    font-size: 0.875em;
+  }
+  .sb-email-more {
+    @apply my-4;
+  }
+  .sb-email-empty {
+    @apply py-4;
+    color: var(--sb-email-muted, #525252);
+  }
+  .sb-email-reader {
+    @apply mt-6 pt-6;
+    border-top: 1px solid var(--sb-email-border, #d4d4d4);
+  }
+  .sb-email-reader-heading {
+    @apply mb-6 grid items-start gap-4;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .sb-email-reader-heading h2 {
+    @apply m-0 text-lg;
+    font-weight: theme(fontWeight.medium);
+  }
+  .sb-email-metadata {
+    @apply m-0 grid gap-2 text-sm;
+  }
+  .sb-email-metadata > div {
+    @apply grid gap-4;
+    grid-template-columns: minmax(5rem, 9rem) minmax(0, 1fr);
+  }
+  .sb-email-metadata dt {
+    color: var(--sb-email-muted, #525252);
+  }
+  .sb-email-metadata dd {
+    @apply m-0;
+  }
+  .sb-email-delivery {
+    @apply my-4 text-sm;
+  }
+  .sb-email-delivery p {
+    @apply mt-0 mb-3;
+  }
+  .sb-email-body {
+    @apply my-6 whitespace-pre-wrap;
+    line-height: theme(lineHeight.relaxed);
+  }
+  .sb-email-attachments {
+    @apply my-4 grid list-none gap-3 p-0;
+  }
+  .sb-email-sr-only {
+    @apply sr-only;
+  }
 }

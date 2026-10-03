@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readdirSync } from "node:fs";
+import assert from "node:assert/strict";
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,6 +36,14 @@ run(
   ],
   consumerRoot,
 );
+const require = createRequire(join(consumerRoot, "package.json"));
+const css = readFileSync(
+  require.resolve("@samebase/convex-cloudflare-email-inbox-ui/styles.css"),
+  "utf8",
+);
+assert.match(css, /@layer components/);
+assert.match(css, /var\(--sb-email-border,/);
+assert.doesNotMatch(css, /@apply|@import|@theme|@property|:root|:host|\*\s*[,{]/);
 run(["exec", "--", "tsc", "-p", "tsconfig.json"], consumerRoot);
 run(["exec", "--", "vitest", "run", "consumer.test.ts"], consumerRoot);
 console.log(`Packed consumer passed. Artifacts retained at ${temporaryRoot}`);

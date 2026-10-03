@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { EmailMessage, type Message } from "./index";
+import { EmailMessage, type EmailButtonProps, type Message } from "./index";
 
 const message: Message = {
   _id: "message-1",
@@ -89,5 +89,21 @@ describe("EmailMessage", () => {
     expect(html).toContain(">receipt.txt</button>");
     expect(html).toContain("Download raw message");
     expect(html).not.toContain("files.example.com");
+  });
+
+  it("uses the host button for both attachment and raw downloads", () => {
+    function HostButton({ appearance, ...props }: EmailButtonProps) {
+      return <button {...props} className={appearance === "text" ? "host-text" : "host-action"} />;
+    }
+    const html = renderToStaticMarkup(
+      <EmailMessage
+        message={{ ...message, rawAvailable: true }}
+        onDownload={async () => "https://files.example.com/download"}
+        controls={{ Button: HostButton }}
+      />,
+    );
+    expect(html).toContain('type="button" class="host-text">receipt.txt</button>');
+    expect(html).toContain('type="button" class="host-action">Download raw message</button>');
+    expect(html).not.toContain("sb-email-button");
   });
 });
