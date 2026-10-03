@@ -3,6 +3,8 @@ import { defineSchema, httpRouter } from "convex/server";
 import { convexTest } from "convex-test";
 import { expect, it, vi } from "vitest";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox";
+import { historyPage } from "@samebase/convex-cloudflare-email-inbox/monitor";
+import { EmailMessage, EmailMonitor } from "@samebase/convex-cloudflare-email-inbox-ui";
 import { components } from "./_generated/api";
 import mailConfig from "@samebase/convex-cloudflare-email-inbox/convex.config.js";
 import { register } from "@samebase/convex-cloudflare-email-inbox/test";
@@ -62,6 +64,18 @@ it("installs packed exports and deduplicates direct and queued sends in an unpat
       }),
     );
     expect(threads.page).toHaveLength(1);
+    expect(EmailMonitor).toBeTypeOf("function");
+    expect(EmailMessage).toBeTypeOf("function");
+    expect(historyPage).toBeDefined();
+    const history = await t.query((ctx) =>
+      email.listHistory(ctx, {
+        inboxId: null,
+        status: "accepted",
+        paginationOpts: { numItems: 10, cursor: null },
+      }),
+    );
+    expect(history.page).toMatchObject([{ _id: messageId, status: "accepted" }]);
+    expect(history.page[0]).not.toHaveProperty("bodyText");
     const messages = await t.query(async (ctx) =>
       email.listMessages(ctx, {
         threadId: threads.page[0]._id,

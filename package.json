@@ -6,7 +6,7 @@
     "dev": "node ./scripts/run-component-dev.ts",
     "dev:primary": "node ./scripts/run-component-dev.ts --primary",
     "dev:worktree": "node ./scripts/run-component-dev.ts --worktree",
-    "component:build": "pnpm --filter @samebase/convex-cloudflare-email-inbox build",
+    "component:build": "pnpm --filter @samebase/convex-cloudflare-email-inbox build && pnpm --filter @samebase/convex-cloudflare-email-inbox-ui build",
     "component:codegen": "pnpm --filter samebase-mail exec convex codegen --component-dir ../../packages/convex-cloudflare-email-inbox/src/component",
     "component:watch": "pnpm --filter @samebase/convex-cloudflare-email-inbox exec tsc -p tsconfig.json --watch",
     "component:test-package": "pnpm run component:build && node ./scripts/check-email-package.ts",
