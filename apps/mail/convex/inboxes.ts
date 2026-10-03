@@ -1,22 +1,15 @@
 import { v } from "convex/values";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox";
+import { inboxView } from "@samebase/convex-cloudflare-email-inbox/monitor";
 import { components } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { requireOwner } from "./access";
 
 const email = new EmailInbox(components.mail);
 
-const inboxSummary = v.object({
-  _id: v.string(),
-  address: v.string(),
-  label: v.string(),
-  localPart: v.string(),
-  unreadCount: v.number(),
-});
-
 export const list = query({
   args: {},
-  returns: v.array(inboxSummary),
+  returns: v.array(inboxView),
   handler: async (ctx) => {
     await requireOwner(ctx);
     return await email.listInboxes(ctx);

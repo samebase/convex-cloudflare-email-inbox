@@ -14,10 +14,15 @@ The [package guide](./packages/convex-cloudflare-email-inbox/README.md) covers i
 Cloudflare credentials, sending, history, and tests. Sending runs inside Convex. Receiving uses
 the package's Cloudflare Worker helpers and your R2 bucket. Mail is the reference integration.
 
+For a read-only monitor inside your existing React app, use
+[`@samebase/convex-cloudflare-email-inbox-ui`](./packages/convex-cloudflare-email-inbox-ui/README.md).
+The host app supplies authorized Convex queries and keeps its own login and access policy.
+
 ## Repository layout
 
 ```text
 packages/convex-cloudflare-email-inbox/  Published component and its tests
+packages/convex-cloudflare-email-inbox-ui/  Optional React monitor and message reader
 apps/mail/                             Mail application and deployment configuration
 docs/                                  Design decisions and development guides
 scripts/                               Workspace development and package verification
@@ -40,12 +45,12 @@ pnpm install
 pnpm run dev
 ```
 
-The development command builds and watches the component, then starts Mail's Convex backend and
+The development command builds and watches both packages, then starts Mail's Convex backend and
 frontend. See [local setup](./docs/local-setup.md) for deployment selection and app environment files.
 
 | Command                           | Purpose                                                                  |
 | --------------------------------- | ------------------------------------------------------------------------ |
-| `pnpm run check`                  | Check formatting, lint, types, and tests across both workspaces          |
+| `pnpm run check`                  | Check formatting, lint, types, and tests across all workspaces           |
 | `pnpm run build`                  | Build the component and the Mail app through its Cloudflare build script |
 | `pnpm run component:test-package` | Install and test the packed package in a fresh consumer                  |
 | `pnpm run component:codegen`      | Generate component types using Mail's Convex project                     |

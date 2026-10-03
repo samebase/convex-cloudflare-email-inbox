@@ -10,6 +10,7 @@ export default defineConfig({
     name: "mail",
     include: [
       "src/**/*.test.ts",
+      "convex/**/*.test.ts",
       "shared/**/*.test.ts",
       "worker/**/*.test.ts",
       "scripts/**/*.test.ts",

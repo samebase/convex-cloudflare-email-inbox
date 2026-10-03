@@ -1,6 +1,6 @@
 {
   "name": "@samebase/convex-cloudflare-email-inbox",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cloudflare email sending, inboxes, and delivery history for Convex.",
   "keywords": [
     "cloudflare",
@@ -50,6 +50,10 @@
     "./receiving": {
       "types": "./dist/client/receiving.d.ts",
       "default": "./dist/client/receiving.js"
+    },
+    "./monitor": {
+      "types": "./dist/client/monitor.d.ts",
+      "default": "./dist/client/monitor.js"
     },
     "./test": "./src/test.ts"
   },

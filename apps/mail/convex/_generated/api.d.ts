@@ -11,6 +11,7 @@
 import type * as access from "../access.js";
 import type * as auth from "../auth.js";
 import type * as bootstrap from "../bootstrap.js";
+import type * as emailMonitor from "../emailMonitor.js";
 import type * as http from "../http.js";
 import type * as inboxes from "../inboxes.js";
 import type * as mail from "../mail.js";
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   access: typeof access;
   auth: typeof auth;
   bootstrap: typeof bootstrap;
+  emailMonitor: typeof emailMonitor;
   http: typeof http;
   inboxes: typeof inboxes;
   mail: typeof mail;

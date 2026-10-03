@@ -71,6 +71,7 @@ Convex agent skills for common tasks can be installed by running
 ## Workspace layout
 
 - `packages/convex-cloudflare-email-inbox` is the publishable component.
+- `packages/convex-cloudflare-email-inbox-ui` is the optional React monitor and message reader.
 - `apps/mail` is the Mail reference app, including its Convex wrappers, frontend, Worker, and app scripts.
 - The root owns shared tooling and commands. Run `pnpm run dev`, `pnpm run check`, and `pnpm run build` here.
 - Run app-specific Convex commands with `pnpm --filter samebase-mail exec convex ...`.

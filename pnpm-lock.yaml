@@ -60,6 +60,9 @@ importers:
       '@samebase/convex-cloudflare-email-inbox':
         specifier: workspace:*
         version: link:../../packages/convex-cloudflare-email-inbox
+      '@samebase/convex-cloudflare-email-inbox-ui':
+        specifier: workspace:*
+        version: link:../../packages/convex-cloudflare-email-inbox-ui
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(typescript@6.0.3))
@@ -170,6 +173,34 @@ importers:
         specifier: ^4.5.4
         version: 4.5.4
     devDependencies:
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+
+  packages/convex-cloudflare-email-inbox-ui:
+    dependencies:
+      convex:
+        specifier: ^1.45.0
+        version: 1.45.0(react@19.2.6)
+      convex-helpers:
+        specifier: 0.1.124
+        version: 0.1.124(patch_hash=f49a2f6be8877933635a4407bb4d8122c66448480e97a446c74e5ed434f82511)(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.6))(hono@4.13.11)(react@19.2.6)(typescript@6.0.3)(zod@4.5.4)
+    devDependencies:
+      '@samebase/convex-cloudflare-email-inbox':
+        specifier: workspace:*
+        version: link:../convex-cloudflare-email-inbox
+      '@types/react':
+        specifier: ^19.2.14
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.14)
+      react:
+        specifier: ^19.2.6
+        version: 19.2.6
+      react-dom:
+        specifier: ^19.2.6
+        version: 19.2.6(react@19.2.6)
       typescript:
         specifier: ~6.0.2
         version: 6.0.3
