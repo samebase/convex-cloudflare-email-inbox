@@ -3,6 +3,7 @@ import { usePaginatedQuery } from "convex-helpers/react";
 import { useConvex, useQuery } from "convex/react";
 import type { FunctionReference } from "convex/server";
 import { useCallback, useId, useRef, useState } from "react";
+import type { ComponentPropsWithRef, ComponentType } from "react";
 
 type Inboxes = Awaited<ReturnType<EmailInbox["listInboxes"]>>;
 type History = Awaited<ReturnType<EmailInbox["listHistory"]>>;
@@ -23,7 +24,45 @@ export type EmailMonitorApi = {
 export type EmailMonitorProps = {
   api: EmailMonitorApi;
   authorizeDownload?: FunctionReference<"action", "public", { object: DownloadObject }, string>;
+  controls?: Partial<EmailControls>;
 };
+
+export type EmailButtonProps = ComponentPropsWithRef<"button"> & {
+  appearance: "action" | "text";
+};
+
+export type EmailSelectProps = {
+  id: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  options: readonly { value: string; label: string }[];
+};
+
+export type EmailControls = {
+  Button: ComponentType<EmailButtonProps>;
+  Select: ComponentType<EmailSelectProps>;
+};
+
+function DefaultButton({ appearance, ...props }: EmailButtonProps) {
+  return <button {...props} className="sb-email-button" data-appearance={appearance} />;
+}
+
+function DefaultSelect({ id, value, onValueChange, options }: EmailSelectProps) {
+  return (
+    <select
+      id={id}
+      className="sb-email-select"
+      value={value}
+      onChange={(event) => onValueChange(event.target.value)}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 const statusLabels = {
   received: "Received",
@@ -43,7 +82,9 @@ function dateLabel(timestamp: number) {
 }
 
 /** Mount inside the host's Convex provider. Every supplied endpoint must enforce access. */
-export function EmailMonitor({ api, authorizeDownload }: EmailMonitorProps) {
+export function EmailMonitor({ api, authorizeDownload, controls }: EmailMonitorProps) {
+  const Button = controls?.Button ?? DefaultButton;
+  const Select = controls?.Select ?? DefaultSelect;
   const id = useId();
   const convex = useConvex();
   const [inboxId, setInboxId] = useState<string | null>(null);
@@ -62,31 +103,27 @@ export function EmailMonitor({ api, authorizeDownload }: EmailMonitorProps) {
   return (
     <section className="sb-email" aria-label="Email monitor">
       <div className="sb-email-filters">
-        <label htmlFor={`${id}-inbox`}>
-          Inbox
-          <select
+        <div className="sb-email-filter">
+          <label htmlFor={`${id}-inbox`}>Inbox</label>
+          <Select
             id={`${id}-inbox`}
             value={inboxId ?? ""}
-            onChange={(event) => {
-              setInboxId(event.target.value || null);
+            onValueChange={(value) => {
+              setInboxId(value || null);
               setMessageId(null);
             }}
-          >
-            <option value="">All inboxes</option>
-            {inboxes?.map((inbox) => (
-              <option key={inbox._id} value={inbox._id}>
-                {inbox.address}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label htmlFor={`${id}-status`}>
-          Status
-          <select
+            options={[
+              { value: "", label: "All inboxes" },
+              ...(inboxes ?? []).map((inbox) => ({ value: inbox._id, label: inbox.address })),
+            ]}
+          />
+        </div>
+        <div className="sb-email-filter">
+          <label htmlFor={`${id}-status`}>Status</label>
+          <Select
             id={`${id}-status`}
             value={status ?? ""}
-            onChange={(event) => {
-              const value = event.target.value;
+            onValueChange={(value) => {
               switch (value) {
                 case "received":
                 case "parse_failed":
@@ -102,15 +139,12 @@ export function EmailMonitor({ api, authorizeDownload }: EmailMonitorProps) {
               }
               setMessageId(null);
             }}
-          >
-            <option value="">All statuses</option>
-            {Object.entries(statusLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+            options={[
+              { value: "", label: "All statuses" },
+              ...Object.entries(statusLabels).map(([value, label]) => ({ value, label })),
+            ]}
+          />
+        </div>
       </div>
       <div
         className="sb-email-history"
@@ -134,9 +168,9 @@ export function EmailMonitor({ api, authorizeDownload }: EmailMonitorProps) {
             {history.results.map((item) => (
               <tr key={item._id} data-selected={item._id === messageId ? "true" : undefined}>
                 <td>
-                  <button
+                  <Button
+                    appearance="text"
                     type="button"
-                    className="sb-email-subject"
                     aria-pressed={item._id === messageId}
                     aria-controls={`${id}-reader`}
                     onClick={(event) => {
@@ -145,7 +179,7 @@ export function EmailMonitor({ api, authorizeDownload }: EmailMonitorProps) {
                     }}
                   >
                     {item.subject}
-                  </button>
+                  </Button>
                   <span className="sb-email-secondary">{item.from}</span>
                 </td>
                 <td>{item.to.join(", ")}</td>
@@ -165,14 +199,16 @@ export function EmailMonitor({ api, authorizeDownload }: EmailMonitorProps) {
         ) : null}
       </div>
       {history.status === "CanLoadMore" || history.status === "LoadingMore" ? (
-        <button
-          type="button"
-          className="sb-email-more"
-          disabled={history.status === "LoadingMore"}
-          onClick={() => history.loadMore(25)}
-        >
-          {history.status === "LoadingMore" ? "Loading" : "Load more"}
-        </button>
+        <div className="sb-email-more">
+          <Button
+            appearance="action"
+            type="button"
+            disabled={history.status === "LoadingMore"}
+            onClick={() => history.loadMore(25)}
+          >
+            {history.status === "LoadingMore" ? "Loading" : "Load more"}
+          </Button>
+        </div>
       ) : null}
       <div id={`${id}-reader`} aria-busy={messageId !== null && message === undefined}>
         {message ? (
@@ -186,7 +222,8 @@ export function EmailMonitor({ api, authorizeDownload }: EmailMonitorProps) {
           >
             <div className="sb-email-reader-heading">
               <h2>{message.subject}</h2>
-              <button
+              <Button
+                appearance="action"
                 type="button"
                 onClick={() => {
                   setMessageId(null);
@@ -194,12 +231,13 @@ export function EmailMonitor({ api, authorizeDownload }: EmailMonitorProps) {
                 }}
               >
                 Close message
-              </button>
+              </Button>
             </div>
             <EmailMessage
               key={message._id}
               message={message}
               delivery={delivery}
+              controls={{ Button }}
               onDownload={
                 authorizeDownload
                   ? (object) => convex.action(authorizeDownload, { object })
@@ -220,11 +258,14 @@ export function EmailMessage({
   message,
   delivery,
   onDownload,
+  controls,
 }: {
   message: Message;
   delivery?: Delivery | undefined;
   onDownload?: ((object: DownloadObject) => Promise<string>) | undefined;
+  controls?: Pick<Partial<EmailControls>, "Button">;
 }) {
+  const Button = controls?.Button ?? DefaultButton;
   const [download, setDownload] = useState<
     { kind: "idle" } | { kind: "pending" } | { kind: "failed" }
   >({ kind: "idle" });
@@ -300,7 +341,8 @@ export function EmailMessage({
           {message.attachments.map((attachment) => (
             <li key={attachment._id}>
               {onDownload ? (
-                <button
+                <Button
+                  appearance="text"
                   type="button"
                   disabled={download.kind === "pending"}
                   onClick={() =>
@@ -308,7 +350,7 @@ export function EmailMessage({
                   }
                 >
                   {attachment.filename}
-                </button>
+                </Button>
               ) : (
                 <span>{attachment.filename}</span>
               )}
@@ -320,13 +362,14 @@ export function EmailMessage({
         </ul>
       ) : null}
       {message.rawAvailable && onDownload ? (
-        <button
+        <Button
+          appearance="action"
           type="button"
           disabled={download.kind === "pending"}
           onClick={() => void downloadObject({ kind: "raw", messageId: message._id })}
         >
           Download raw message
-        </button>
+        </Button>
       ) : null}
       {download.kind === "pending" ? <p role="status">Preparing download</p> : null}
       {download.kind === "failed" ? (
