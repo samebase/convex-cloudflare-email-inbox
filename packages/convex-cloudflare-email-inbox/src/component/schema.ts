@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { deliveryView } from "../client/monitor";
 
 export const ingressState = v.union(
   v.object({ kind: v.literal("reserved"), reservedAt: v.number() }),
@@ -8,26 +9,6 @@ export const ingressState = v.union(
     messageId: v.id("emailMessages"),
     committedAt: v.number(),
   }),
-);
-
-export const recipientResults = v.object({
-  delivered: v.array(v.string()),
-  queued: v.array(v.string()),
-  permanent_bounces: v.array(v.string()),
-  suppressed_recipients: v.optional(v.array(v.string())),
-});
-
-export const deliveryState = v.union(
-  v.object({ kind: v.literal("queued"), queuedAt: v.number(), notBefore: v.optional(v.number()) }),
-  v.object({ kind: v.literal("sending"), startedAt: v.number() }),
-  v.object({
-    kind: v.literal("accepted"),
-    acceptedAt: v.number(),
-    providerMessageId: v.optional(v.string()),
-    recipientResults: v.optional(recipientResults),
-  }),
-  v.object({ kind: v.literal("rejected"), failedAt: v.number(), code: v.string() }),
-  v.object({ kind: v.literal("unknown"), observedAt: v.number() }),
 );
 
 export const messageTransport = v.union(
@@ -43,7 +24,7 @@ export const messageTransport = v.union(
     kind: v.literal("outbound"),
     clientRequestId: v.string(),
     attempt: v.optional(v.number()),
-    delivery: deliveryState,
+    delivery: deliveryView,
   }),
 );
 
@@ -104,6 +85,20 @@ export default defineSchema({
     clientRequestId: v.optional(v.string()),
     transport: messageTransport,
   })
+    .index("by_occurred_at", ["occurredAt"])
+    .index("by_inbox_and_occurred_at", ["inboxId", "occurredAt"])
+    .index("by_delivery_kind_and_occurred_at", ["transport.delivery.kind", "occurredAt"])
+    .index("by_inbox_and_delivery_kind_and_occurred_at", [
+      "inboxId",
+      "transport.delivery.kind",
+      "occurredAt",
+    ])
+    .index("by_parse_kind_and_occurred_at", ["transport.parse.kind", "occurredAt"])
+    .index("by_inbox_and_parse_kind_and_occurred_at", [
+      "inboxId",
+      "transport.parse.kind",
+      "occurredAt",
+    ])
     .index("by_thread_and_occurred_at", ["threadId", "occurredAt"])
     .index("by_inbox_and_rfc_message_id", ["inboxId", "rfcMessageId"])
     .index("by_inbox_and_client_request_id", ["inboxId", "clientRequestId"]),

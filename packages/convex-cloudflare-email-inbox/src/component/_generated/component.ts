@@ -207,6 +207,59 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         },
         Name
       >;
+      listHistory: FunctionReference<
+        "query",
+        "internal",
+        {
+          inboxId: string | null;
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            id?: number;
+            maximumBytesRead?: number;
+            maximumRowsRead?: number;
+            numItems: number;
+          };
+          status:
+            | "received"
+            | "queued"
+            | "sending"
+            | "accepted"
+            | "rejected"
+            | "unknown"
+            | "parse_failed"
+            | null;
+        },
+        {
+          continueCursor: string;
+          isDone: boolean;
+          page: Array<{
+            _id: string;
+            bcc: Array<string>;
+            cc: Array<string>;
+            direction: "inbound" | "outbound";
+            from: string;
+            inboxAddress: string;
+            inboxId: string;
+            occurredAt: number;
+            snippet: string;
+            status:
+              | "received"
+              | "queued"
+              | "sending"
+              | "accepted"
+              | "rejected"
+              | "unknown"
+              | "parse_failed";
+            subject: string;
+            threadId: string;
+            to: Array<string>;
+          }>;
+          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+          splitCursor?: string | null;
+        },
+        Name
+      >;
       listMessages: FunctionReference<
         "query",
         "internal",
