@@ -105,6 +105,11 @@ unknown attempt. There is no exactly-once provider guarantee.
 ```ts
 const inboxId = await email.createInbox(ctx, { address: "support@example.com", label: "Support" });
 const inboxes = await email.listInboxes(ctx);
+const history = await email.listHistory(ctx, {
+  inboxId: null, // All inboxes authorized by this wrapper.
+  status: "rejected", // null includes every status.
+  paginationOpts: { cursor: null, numItems: 25 },
+});
 const threads = await email.listThreads(ctx, {
   inboxId,
   paginationOpts: { cursor: null, numItems: 25 },
@@ -136,6 +141,44 @@ Thread and message queries support Convex pagination. `listInboxes` returns up t
 creation order. Queries read local data and can be wrapped in reactive app queries. Component
 functions are internal to the installing app. The app must authorize every public wrapper, including
 inbox selection and file access. History has no automatic expiry; the app owns retention policy.
+
+### Embed a read-only monitor
+
+`listHistory` returns newest-first message summaries across threads. It filters by inbox and status
+using indexes on the existing records. It does not read message bodies or attachments, mark mail as
+read, or change delivery state. Equal timestamps have stable pagination order. Fetch one selected
+message with `getMessage`; call `getDelivery` only for outbound messages.
+
+Statuses are `queued`, `sending`, `accepted`, `rejected`, `unknown`, `received`, and `parse_failed`.
+`accepted` still means that Cloudflare processed the request, not confirmed delivery to every
+recipient. The selected message's delivery record holds the provider's recipient outcomes.
+
+Use the shared validators in authorized app wrappers:
+
+```ts
+import { historyPage, listHistoryArgs } from "@samebase/convex-cloudflare-email-inbox/monitor";
+import { query } from "./_generated/server";
+
+export const history = query({
+  args: listHistoryArgs,
+  returns: historyPage,
+  handler: async (ctx, args) => {
+    await requireEmailAdmin(ctx); // Implement your application's access policy.
+    return await email.listHistory(ctx, {
+      inboxId: args.inboxId,
+      status: args.status,
+      paginationOpts: args.paginationOpts,
+    });
+  },
+});
+```
+
+The `/monitor` subpath also exports `historyStatus`, `historySummary`, `inboxView`, `messageView`,
+and `deliveryView`, with their inferred TypeScript types. These validators describe public wrapper
+results; component IDs are strings at this boundary. The host must authorize all inbox, message,
+delivery, and file reads. In a multi-tenant app, restrict both the selected inbox and message to the
+caller's scope. Passing `inboxId: null` grants access to all component inboxes, so do not expose that
+choice to a user with access to only one inbox.
 
 ## Named attachments in R2
 

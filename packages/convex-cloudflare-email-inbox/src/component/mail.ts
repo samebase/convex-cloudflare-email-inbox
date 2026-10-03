@@ -1,7 +1,8 @@
 import { paginator } from "convex-helpers/server/pagination";
-import { paginationOptsValidator, paginationResultValidator } from "convex/server";
+import { paginationOptsValidator, paginationResultValidator, type Query } from "convex/server";
 import { type Infer, v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
+import { historyPage, historyStatus, messageView } from "../client/monitor";
+import type { DataModel, Doc } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { normalizeMailAddress } from "./mailProtocol";
 import { messageContentFields, outboundAttachment } from "./messageTypes";
@@ -20,43 +21,13 @@ const threadSummary = v.object({
   unreadCount: v.number(),
 });
 
-const attachmentView = v.object({
-  _id: v.id("emailAttachments"),
-  filename: v.string(),
-  mimeType: v.string(),
-  byteSize: v.number(),
-});
-
-const messageView = v.object({
-  _id: v.id("emailMessages"),
-  inboxId: v.id("inboxes"),
-  threadId: v.id("emailThreads"),
-  direction: v.union(v.literal("inbound"), v.literal("outbound")),
-  status: v.union(
-    v.literal("received"),
-    v.literal("queued"),
-    v.literal("sending"),
-    v.literal("accepted"),
-    v.literal("rejected"),
-    v.literal("unknown"),
-    v.literal("parse_failed"),
-  ),
-  from: v.string(),
-  replyTo: v.union(v.string(), v.null()),
-  replyRecipient: v.union(v.string(), v.null()),
-  to: v.array(v.string()),
-  cc: v.array(v.string()),
-  bcc: v.array(v.string()),
-  subject: v.string(),
-  occurredAt: v.number(),
-  rfcMessageId: v.union(v.string(), v.null()),
-  references: v.array(v.string()),
-  bodyText: v.string(),
-  bodyHtml: v.union(v.string(), v.null()),
-  bodyTruncated: v.boolean(),
-  rawAvailable: v.boolean(),
-  attachments: v.array(attachmentView),
-});
+function messageStatus(message: Doc<"emailMessages">) {
+  return message.transport.kind === "outbound"
+    ? message.transport.delivery.kind
+    : message.transport.parse.kind === "failed"
+      ? ("parse_failed" as const)
+      : ("received" as const);
+}
 
 async function readMessage(ctx: QueryCtx, message: Doc<"emailMessages">) {
   const body = await ctx.db
@@ -67,18 +38,12 @@ async function readMessage(ctx: QueryCtx, message: Doc<"emailMessages">) {
     .query("emailAttachments")
     .withIndex("by_message_and_ordinal", (q) => q.eq("messageId", message._id))
     .take(200);
-  const status =
-    message.transport.kind === "outbound"
-      ? message.transport.delivery.kind
-      : message.transport.parse.kind === "failed"
-        ? ("parse_failed" as const)
-        : ("received" as const);
   return {
     _id: message._id,
     inboxId: message.inboxId,
     threadId: message.threadId,
     direction: message.transport.kind,
-    status,
+    status: messageStatus(message),
     from: message.headerFrom || message.envelopeFrom,
     replyTo: message.replyToAddress ?? null,
     replyRecipient:
@@ -111,6 +76,70 @@ export const getMessage = query({
   handler: async (ctx, { messageId }) => {
     const message = await ctx.db.get(messageId);
     return message ? await readMessage(ctx, message) : null;
+  },
+});
+
+export const listHistory = query({
+  args: {
+    inboxId: v.union(v.id("inboxes"), v.null()),
+    status: v.union(historyStatus, v.null()),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: historyPage,
+  handler: async (ctx, { inboxId, status, paginationOpts }) => {
+    const messages = paginator(ctx.db, schema).query("emailMessages");
+    let history: Query<DataModel["emailMessages"]> =
+      inboxId === null
+        ? messages.withIndex("by_occurred_at", (q) => q)
+        : messages.withIndex("by_inbox_and_occurred_at", (q) => q.eq("inboxId", inboxId));
+    if (status === "received" || status === "parse_failed") {
+      const parseKind = status === "received" ? "parsed" : "failed";
+      history =
+        inboxId === null
+          ? messages.withIndex("by_parse_kind_and_occurred_at", (q) =>
+              q.eq("transport.parse.kind", parseKind),
+            )
+          : messages.withIndex("by_inbox_and_parse_kind_and_occurred_at", (q) =>
+              q.eq("inboxId", inboxId).eq("transport.parse.kind", parseKind),
+            );
+    } else if (status !== null) {
+      history =
+        inboxId === null
+          ? messages.withIndex("by_delivery_kind_and_occurred_at", (q) =>
+              q.eq("transport.delivery.kind", status),
+            )
+          : messages.withIndex("by_inbox_and_delivery_kind_and_occurred_at", (q) =>
+              q.eq("inboxId", inboxId).eq("transport.delivery.kind", status),
+            );
+    }
+    const result = await history.order("desc").paginate(paginationOpts);
+    return {
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+      ...(result.pageStatus ? { pageStatus: result.pageStatus } : {}),
+      ...(result.splitCursor ? { splitCursor: result.splitCursor } : {}),
+      page: await Promise.all(
+        result.page.map(async (message) => {
+          const inbox = await ctx.db.get(message.inboxId);
+          if (!inbox) throw new Error("Message inbox not found");
+          return {
+            _id: message._id,
+            inboxId: message.inboxId,
+            inboxAddress: inbox.address,
+            threadId: message.threadId,
+            direction: message.transport.kind,
+            status: messageStatus(message),
+            from: message.headerFrom || message.envelopeFrom,
+            to: message.headerTo,
+            cc: message.headerCc,
+            bcc: message.headerBcc ?? [],
+            subject: message.subject,
+            snippet: message.snippet,
+            occurredAt: message.occurredAt,
+          };
+        }),
+      ),
+    };
   },
 });
 

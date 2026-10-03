@@ -1,14 +1,7 @@
 import { v } from "convex/values";
+import { inboxView } from "../client/monitor";
 import { mutation, query } from "./_generated/server";
 import { normalizeMailAddress } from "./mailProtocol";
-
-const inboxSummary = v.object({
-  _id: v.id("inboxes"),
-  address: v.string(),
-  label: v.string(),
-  localPart: v.string(),
-  unreadCount: v.number(),
-});
 
 function normalizeLocalPart(value: string) {
   const localPart = value.trim().toLowerCase();
@@ -28,7 +21,7 @@ function normalizeDomain(value: string) {
 
 export const list = query({
   args: {},
-  returns: v.array(inboxSummary),
+  returns: v.array(inboxView),
   handler: async (ctx) => {
     const inboxes = await ctx.db.query("inboxes").withIndex("by_created_at").take(100);
     return inboxes.map((inbox) => ({

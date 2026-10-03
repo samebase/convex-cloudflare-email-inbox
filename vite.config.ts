@@ -2,6 +2,7 @@ import { defineConfig } from "vite-plus";
 
 const generatedFiles = [
   ".agents/**",
+  ".playwright-cli/**",
   "apps/mail/convex/_generated/**",
   "apps/mail/src/routeTree.gen.ts",
   "apps/mail/worker-configuration.d.ts",
@@ -16,7 +17,11 @@ export default defineConfig({
     options: { typeAware: true },
   },
   test: {
-    projects: ["apps/mail", "packages/convex-cloudflare-email-inbox"],
+    projects: [
+      "apps/mail",
+      "packages/convex-cloudflare-email-inbox",
+      "packages/convex-cloudflare-email-inbox-ui",
+    ],
   },
   staged: {
     "*": "vp check --fix",

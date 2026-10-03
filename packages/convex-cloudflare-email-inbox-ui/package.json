@@ -1,0 +1,60 @@
+{
+  "name": "@samebase/convex-cloudflare-email-inbox-ui",
+  "version": "0.1.0",
+  "description": "An embedded React email monitor for the Cloudflare Email Inbox Convex component.",
+  "keywords": [
+    "cloudflare",
+    "convex",
+    "email",
+    "inbox",
+    "react"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samebase/convex-cloudflare-email-inbox.git",
+    "directory": "packages/convex-cloudflare-email-inbox-ui"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && pnpm run build:styles",
+    "build:styles": "tailwindcss -i src/styles.css -o dist/styles.css --minify",
+    "watch:styles": "tailwindcss -i src/styles.css -o dist/styles.css --watch",
+    "prepack": "pnpm run build"
+  },
+  "dependencies": {
+    "convex-helpers": "0.1.124"
+  },
+  "devDependencies": {
+    "@samebase/convex-cloudflare-email-inbox": "workspace:*",
+    "@tailwindcss/cli": "4.3.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "tailwindcss": "4.3.0",
+    "typescript": "~6.0.2"
+  },
+  "peerDependencies": {
+    "@samebase/convex-cloudflare-email-inbox": "^0.2.0",
+    "convex": "^1.45.0",
+    "react": "^19.0.0"
+  }
+}

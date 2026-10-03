@@ -1,4 +1,5 @@
 import { compareValues, type Infer, v } from "convex/values";
+import { deliveryView } from "../client/monitor";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import {
@@ -11,7 +12,6 @@ import {
 } from "./_generated/server";
 import { safeRfcMessageId, sendCloudflareEmail, sendOutcome, sendPayload } from "./cloudflareEmail";
 import { loadOutboundAttachments } from "./outboundAttachments";
-import { deliveryState } from "./schema";
 
 const SEND_WATCHDOG_DELAY_MS = 60_000;
 const MAX_ATTEMPTS = 3;
@@ -52,7 +52,7 @@ async function loadPayload(ctx: QueryCtx, message: Doc<"emailMessages">) {
 
 export const get = query({
   args: { messageId: v.id("emailMessages") },
-  returns: deliveryState,
+  returns: deliveryView,
   handler: async (ctx, { messageId }) => {
     const message = await ctx.db.get(messageId);
     if (!message || message.transport.kind !== "outbound") {
@@ -235,8 +235,8 @@ export const finish = internalMutation({
 
 export const send = action({
   args: { messageId: v.id("emailMessages") },
-  returns: deliveryState,
-  handler: async (ctx, { messageId }): Promise<Infer<typeof deliveryState>> => {
+  returns: deliveryView,
+  handler: async (ctx, { messageId }): Promise<Infer<typeof deliveryView>> => {
     const prepared: Infer<typeof preparedSend> | null = await ctx.runQuery(
       internal.delivery.prepare,
       {
