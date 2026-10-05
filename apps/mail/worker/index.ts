@@ -1,12 +1,5 @@
 import { downloadObject, receiveEmail } from "@samebase/convex-cloudflare-email-inbox/worker";
 
-// The deploy scripts set CONVEX_SITE_URL, and the setup stack sets the two secrets.
-type MailEnv = Env & {
-  CONVEX_SITE_URL: string;
-  MAIL_BRIDGE_SECRET: string;
-  MAIL_RECOVERY_ADDRESS: string;
-};
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -31,4 +24,4 @@ export default {
       message.setReject("Mail storage is temporarily unavailable");
     }
   },
-} satisfies ExportedHandler<MailEnv>;
+} satisfies ExportedHandler<Env>;

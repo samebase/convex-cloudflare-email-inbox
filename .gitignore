@@ -16,7 +16,8 @@ dist-ssr
 .env*
 .convex
 apps/mail/convex/.tmp
-worker-configuration.d.ts
+# cf Build Output and generated Worker types
+.cloudflare
 
 # Editor directories and files
 .vscode/*
