@@ -29,3 +29,6 @@ worker-configuration.d.ts
 *.njsproj
 *.sln
 *.sw?
+
+# Alchemy local state
+.alchemy
