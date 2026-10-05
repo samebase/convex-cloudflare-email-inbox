@@ -2,8 +2,8 @@
 // the setup around it: the Worker shell, its Builds link to this repository,
 // the Convex project with the deploy keys the builds use, and the wiring of
 // the inbox component (packages/convex-cloudflare-email-inbox/alchemy.ts).
-// It never uploads Worker code; apps/mail/wrangler.jsonc stays the source of
-// truth for that.
+// It never uploads Worker code; apps/mail/cloudflare.config.ts stays the
+// source of truth for that, and this file imports the Worker name from it.
 //
 // The stack owns wiring, not settings. A value that a person opens a
 // dashboard to check (the owner email, the setup secret, the sending token,
@@ -13,11 +13,12 @@
 // .github/workflows/infra.yml runs it: a plan and a drift report on every
 // pull request that touches this file, a deploy on main. Locally it needs
 // CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in .env (a user token with
-// Workers Scripts, Workers Builds Configuration, Secrets Store, R2, Email
+// Workers Scripts, Workers Builds Configuration, Secrets Store, Email
 // Routing rules, Zone read, DNS) and the Convex CLI login:
 //   npx alchemy plan --stage prod
 //
-// A fork changes the four values below. The repository comes from the origin
+// A fork changes the three values below and the Worker name in
+// apps/mail/cloudflare.config.ts. The repository comes from the origin
 // remote of the clone, or from GITHUB_REPOSITORY in GitHub Actions.
 import * as WorkersBuilds from "@samebase/alchemy-cloudflare-workers-builds";
 import * as Convex from "@samebase/alchemy-convex";
@@ -26,9 +27,9 @@ import * as Cloudflare from "alchemy/Cloudflare";
 import * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import { worker as mailWorker } from "./apps/mail/cloudflare.config.ts";
 import { EmailInbox } from "./packages/convex-cloudflare-email-inbox/alchemy.ts";
 
-const WORKER_NAME = "samebase-mail";
 // The team id, not the slug: CI authenticates with a team access token, and
 // Convex answers the slug lookup only for a user login.
 const CONVEX_TEAM = 38516;
@@ -48,9 +49,9 @@ export default Alchemy.Stack(
     state: Cloudflare.state(),
   },
   Effect.gen(function* () {
-    // Only the name: every other Worker setting stays with wrangler.jsonc.
+    // Only the name: every other Worker setting stays with cloudflare.config.ts.
     // Retained on destroy: this is the production Worker of a live mail app.
-    const worker = yield* WorkersBuilds.Worker("Worker", { name: WORKER_NAME }).pipe(
+    const worker = yield* WorkersBuilds.Worker("Worker", { name: mailWorker.name }).pipe(
       Alchemy.RemovalPolicy.retain(),
     );
 
