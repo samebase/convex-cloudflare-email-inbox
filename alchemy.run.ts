@@ -9,8 +9,8 @@
 // Routing rules and addresses, Zone read, DNS) and the Convex CLI login:
 //   npx alchemy deploy --adopt
 //
-// The buckets and the routing are retained on destroy: a destroy removes them
-// from state and leaves the mail and the MX records in place.
+// The buckets are retained on destroy: a destroy removes them from state and
+// leaves the mail in place.
 import * as WorkersBuilds from "@samebase/alchemy-cloudflare-workers";
 import * as Convex from "@samebase/alchemy-convex";
 import * as Alchemy from "alchemy";
@@ -82,11 +82,10 @@ export default Alchemy.Stack(
       Alchemy.RemovalPolicy.retain(),
     );
 
-    // Inbound mail for json.md goes to the Worker.
-    const routing = yield* Cloudflare.Email.Routing("Routing", {
-      zone: ZONE_ID,
-      enabled: true,
-    }).pipe(Alchemy.RemovalPolicy.retain());
+    // Inbound mail for json.md goes to the Worker. Email Routing itself stays
+    // enabled from the dashboard: Alchemy's Routing resource calls the enable
+    // endpoint on every create, and Cloudflare does not document that call on
+    // a zone that is already enabled.
     yield* Cloudflare.Email.CatchAll("CatchAll", {
       zone: ZONE_ID,
       name: "samebase-mail catch-all",
@@ -94,10 +93,6 @@ export default Alchemy.Stack(
       actions: [{ type: "worker", value: [WORKER_NAME] }],
     });
 
-    return {
-      url: worker.url,
-      previewsEnabled: builds.previewsEnabled,
-      routingStatus: routing.status,
-    };
+    return { url: worker.url, previewsEnabled: builds.previewsEnabled };
   }),
 );
