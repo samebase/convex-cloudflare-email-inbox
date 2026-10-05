@@ -77,10 +77,6 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
         value: workerUrl,
       });
 
-      // The first install declared the catch-all at the root of the stack.
-      // The former id moves its state row here. Remove the renamedFrom call
-      // after one deploy.
-      //
       // Email Routing itself stays enabled from the dashboard: Alchemy's
       // Routing resource calls the enable endpoint on every create, and
       // Cloudflare does not document that call on a zone that is already
@@ -90,6 +86,6 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
         name: Output.interpolate`${workerName} catch-all`,
         enabled: true,
         actions: [{ type: "worker", value: [workerName] }],
-      }).pipe(Alchemy.RemovalPolicy.retain(), Alchemy.renamedFrom({ fqn: "CatchAll" }));
+      }).pipe(Alchemy.RemovalPolicy.retain());
     }),
   );
