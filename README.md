@@ -65,73 +65,58 @@ Licensed under [Apache License 2.0](./LICENSE).
 
 ## Setup stack
 
-`alchemy.run.ts` declares the full Mail install: the Worker and its secrets, its Workers Builds
-link to this repository, the Convex project with its deploy keys and variables, the two mail
-buckets, the recovery address, and the catch-all rule of the mail zone. Workers Builds deploys the
-code from `apps/mail/wrangler.jsonc`. The stack never uploads code. `.github/workflows/infra.yml`
-runs the stack: a plan and a drift report on pull requests that touch the file, and a deploy on
-`main`. The state is in Alchemy's Cloudflare state store.
+`alchemy.run.ts` declares the setup around Workers Builds: the Worker, its Workers Builds link to
+this repository, the Convex project with the deploy keys the builds use, and the inbox wiring from
+`packages/convex-cloudflare-email-inbox/alchemy.ts`: the production `MAIL_BRIDGE_SECRET` on the
+Worker and in Convex, `MAIL_WORKER_URL` in Convex, the two mail buckets, and the catch-all rule of
+the mail zone. Workers Builds deploys the code from `apps/mail/wrangler.jsonc`. The stack never
+uploads code. `.github/workflows/infra.yml` runs the stack: a plan and a drift report on pull
+requests that touch the file, and a deploy on `main`. The state is in Alchemy's Cloudflare state
+store.
 
-The file holds no ids of one install. The stack name `SamebaseMail` gives the app name
-`samebase-mail`. The Worker, the Convex project, the buckets (`samebase-mail` and
-`samebase-mail-previews`), and the catch-all rule use the app name. A stage other than `prod` adds
-the stage to the name. The repository comes from the `origin` remote of the clone, or from
-`GITHUB_REPOSITORY` in GitHub Actions.
+The stack owns wiring, not settings. It declares only values that two sides must share and that
+nobody edits by hand. The settings below stay in the dashboards, where you can read and change
+them.
 
-### Inputs
+### Credentials
 
-Put the inputs in `.env` for local runs. Set them as repository secrets and variables for the
-workflow.
+Put `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in `.env` for local runs. The workflow reads
+them and `CONVEX_ACCESS_TOKEN` (a Convex team access token) from repository secrets. Locally, the
+Convex CLI login is enough. The API token needs these permissions: Workers Scripts, Workers Builds
+Configuration, Account Settings Read, Secrets Store, Workers R2 Storage, Email Routing Rules, Zone
+Read, and DNS.
 
-| Name                         | In GitHub          | Value                                                          |
-| ---------------------------- | ------------------ | -------------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`       | Secret             | Cloudflare user API token, see the permissions below           |
-| `CLOUDFLARE_ACCOUNT_ID`      | Secret             | Cloudflare account. Convex also sends mail through it.         |
-| `CONVEX_ACCESS_TOKEN`        | Secret             | Convex team access token. Locally, the Convex login is enough. |
-| `CONVEX_TEAM`                | Variable           | Convex team slug                                               |
-| `CONVEX_PROJECT`             | Variable, optional | Convex project name. The default is the app name.              |
-| `MAIL_ZONE`                  | Variable           | Cloudflare zone that receives the mail, such as `example.com`  |
-| `OWNER_EMAIL`                | Secret             | The only email that can sign in                                |
-| `OWNER_SETUP_SECRET`         | Secret             | The code for the first sign-up                                 |
-| `MAIL_RECOVERY_ADDRESS`      | Secret             | Gets a copy of the mail that the Worker cannot store           |
-| `CLOUDFLARE_EMAIL_API_TOKEN` | Secret             | Cloudflare Email Sending token for Convex production           |
+### Settings the stack does not touch
 
-The API token needs these permissions: Workers Scripts, Workers Builds Configuration, Account
-Settings Read, Secrets Store, Workers R2 Storage, Email Routing Rules, Email Routing Addresses, Zone
-Read, and DNS. The stack makes the
-production `MAIL_BRIDGE_SECRET` itself and writes it to the Worker and to Convex production.
-
-The workflow keeps `OWNER_EMAIL` in a secret: the plan prints the values that are not secrets,
-and the workflow logs of a public repository are public.
+| Where                                                | Name                          | Value                                                                                       |
+| ---------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------- |
+| Convex production, and preview defaults              | `OWNER_EMAIL`                 | The only email that can sign in                                                             |
+| Convex production, and preview defaults              | `OWNER_SETUP_SECRET`          | The code for the first sign-up                                                              |
+| Convex production                                    | `CLOUDFLARE_EMAIL_API_TOKEN`  | Cloudflare Email Sending token                                                              |
+| Convex production, and preview defaults              | `CLOUDFLARE_EMAIL_ACCOUNT_ID` | Cloudflare account of the verified sending domain                                           |
+| Worker secret                                        | `MAIL_RECOVERY_ADDRESS`       | Gets a copy of the mail that the Worker cannot store. A verified Email Routing destination. |
+| Worker preview settings, and Convex preview defaults | `MAIL_BRIDGE_SECRET`          | One random value for previews, the same in both places                                      |
 
 ### Manual steps
 
-The stack does not do these steps:
-
 1. Install the Cloudflare Workers and Pages GitHub App on the repository, once for each account.
    Start from **Workers & Pages** in the Cloudflare dashboard.
-2. Enable Email Routing on the mail zone in the Cloudflare dashboard, once for each zone.
-3. Click the link in the verification mail that Cloudflare sends to `MAIL_RECOVERY_ADDRESS`.
-4. For Worker Previews, make one random preview `MAIL_BRIDGE_SECRET`. Set it in two places: the
-   preview settings of the Worker in the Cloudflare dashboard, and the preview default
-   environment variables of the Convex project.
+2. Enable Email Routing on the mail zone, and verify the recovery address as a destination, in the
+   Cloudflare dashboard.
+3. Set the settings above.
 
 ### Fresh install
 
-1. Fork the repository.
+1. Fork the repository. Change the four names at the top of `alchemy.run.ts`.
 2. Create the Alchemy state store once for each Cloudflare account:
    `npx alchemy provider cloudflare bootstrap`.
 3. Do manual steps 1 and 2.
-4. Set the inputs in `.env`, and as repository secrets and variables.
-5. Run `npx alchemy deploy --stage prod`.
-6. Do manual step 3.
-7. Push once to `main`. Workers Builds then deploys Convex and the Worker.
+4. Run `npx alchemy deploy --stage prod`.
+5. Do manual step 3.
+6. Push once to `main`. Workers Builds then deploys Convex and the Worker.
 
-A fork in its own Cloudflare account and Convex team can keep the stack name. A second install in
-the same account needs a new stack name. Then also change the two bucket names in
-`apps/mail/wrangler.jsonc` to `<app>` and `<app>-previews`. The app names its mail domain
-`json.md` in `apps/mail/convex/bootstrap.ts` and `apps/mail/src/components/mail/MailWorkspace.tsx`.
-For a different `MAIL_ZONE`, change the domain in these two files.
-
-This install was made before the stack. Its Convex project has the name `mail`, so it sets
-`CONVEX_PROJECT=mail`.
+A second install in the same account needs a new stack name and Worker name. Then also change the
+two bucket names in `apps/mail/wrangler.jsonc` to `<worker>` and `<worker>-previews`. The app
+names its mail domain `json.md` in `apps/mail/convex/bootstrap.ts` and
+`apps/mail/src/components/mail/MailWorkspace.tsx`. For a different zone, change the domain in these
+two files.

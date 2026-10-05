@@ -56,9 +56,10 @@ The following Convex environment variables configure the app:
 
 The Worker uses `MAIL_BRIDGE_SECRET` and `MAIL_RECOVERY_ADDRESS` as secrets. The recovery address
 must be a verified Cloudflare Email Routing destination. It only receives a copy when storage or
-the Convex handoff fails. The [setup stack](../../README.md#setup-stack) sets these secrets and the
-production Convex variables. The deploy commands set `CONVEX_SITE_URL` to the Convex site URL of
-the same build. `wrangler.jsonc` binds `MAIL_STORAGE` and `ASSETS`. Sending runs in the Convex
+the Convex handoff fails. The [setup stack](../../README.md#setup-stack) sets `MAIL_BRIDGE_SECRET` on the Worker and in
+Convex production, and `MAIL_WORKER_URL` in Convex production. The other variables and
+`MAIL_RECOVERY_ADDRESS` are set by hand. The deploy commands set `CONVEX_SITE_URL` to the Convex
+site URL of the same build. `wrangler.jsonc` binds `MAIL_STORAGE` and `ASSETS`. Sending runs in the Convex
 component, not the Worker.
 
 To create the two initial inboxes in a deployment, run:
@@ -86,10 +87,10 @@ Mail previews use the `samebase-mail-previews` R2 bucket. The preview deploy com
 `CONVEX_SITE_URL` to the Convex URL from that branch's build. It also sets `MAIL_WORKER_URL` in
 that Convex preview. Production mail storage and email routing stay unchanged.
 
-The setup stack sets `OWNER_EMAIL`, `OWNER_SETUP_SECRET`, and `CLOUDFLARE_EMAIL_ACCOUNT_ID` as
-Convex project defaults for preview deployments, with the production values. The preview Worker
-and the Convex preview need a matching test `MAIL_BRIDGE_SECRET`. Set it by hand in the preview
-settings of the Worker and in the Convex preview defaults. Leave sending credentials unset in
+Set `OWNER_EMAIL`, `OWNER_SETUP_SECRET`, and `CLOUDFLARE_EMAIL_ACCOUNT_ID` as Convex project
+defaults for preview deployments. The preview Worker and the Convex preview need a matching test
+`MAIL_BRIDGE_SECRET`. Set it in the preview settings of the Worker and in the Convex preview
+defaults. Leave sending credentials unset in
 previews unless they use an isolated test account. Do not route the live inbox to a preview.
 
 ## Mail delivery rules
