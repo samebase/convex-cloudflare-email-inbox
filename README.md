@@ -124,8 +124,8 @@ Configuration, Account Settings Read, Secrets Store, Email Routing Rules, Zone R
 5. Do manual step 4.
 6. Push once to `main`. Workers Builds then deploys Convex and the Worker.
 
-A second install in the same account needs a new stack name and Worker name. Then also change the
-two bucket names in `apps/mail/cloudflare.config.ts` to `<worker>` and `<worker>-previews`. The app
+A second install in the same account needs a new stack name and Worker name. The bucket names
+follow the Worker name, so they need no change. The app
 names its mail domain `json.md` in `apps/mail/convex/bootstrap.ts` and
 `apps/mail/src/components/mail/MailWorkspace.tsx`. For a different zone, change the domain in these
 two files.

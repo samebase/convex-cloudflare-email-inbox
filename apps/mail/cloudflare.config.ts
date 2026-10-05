@@ -57,15 +57,16 @@ export const worker = defineWorker({
   },
   env: {
     ...env,
-    // The buckets exist and hold mail. A second install in the same account
-    // changes both names to <worker> and <worker>-previews.
-    MAIL_STORAGE: bindings.r2({ name: "samebase-mail" }),
+    // The bucket names follow the Worker name: <worker> for production mail
+    // and <worker>-previews for previews. This install's Worker is
+    // samebase-mail, so its buckets keep the names they had before.
+    MAIL_STORAGE: bindings.r2({ name }),
     MAIL_RECOVERY_ADDRESS: bindings.secret(),
   },
 });
 
 export default defineConfig(({ isPreview }) => ({
   worker: isPreview
-    ? { ...worker, env: { ...env, MAIL_STORAGE: bindings.r2({ name: "samebase-mail-previews" }) } }
+    ? { ...worker, env: { ...env, MAIL_STORAGE: bindings.r2({ name: `${name}-previews` }) } }
     : worker,
 }));
