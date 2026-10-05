@@ -41,7 +41,10 @@ export default Alchemy.Stack(
   },
   Effect.gen(function* () {
     // Only the name: every other Worker setting stays with wrangler.jsonc.
-    const worker = yield* WorkersBuilds.Worker("Worker", { name: WORKER_NAME });
+    // Retained on destroy: this is the production Worker of a live mail app.
+    const worker = yield* WorkersBuilds.Worker("Worker", { name: WORKER_NAME }).pipe(
+      Alchemy.RemovalPolicy.retain(),
+    );
 
     const deployKey = yield* Convex.DeployKey("DeployKey", {
       deployment: CONVEX_PROD_DEPLOYMENT,
