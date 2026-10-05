@@ -62,3 +62,7 @@ decisions, verification, and questions for reviewers.
 ## License
 
 Licensed under [Apache License 2.0](./LICENSE).
+
+## Setup stack
+
+`alchemy.run.ts` declares the Worker, its Workers Builds link to this repository, the Convex deploy keys the builds use, the two mail buckets, and the catch-all rule on `json.md`. Workers Builds deploys from `apps/mail/wrangler.jsonc`; the stack never uploads code. Run it with `npx alchemy deploy` and a Cloudflare API token in `.env`.
