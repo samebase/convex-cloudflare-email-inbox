@@ -25,8 +25,8 @@
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
     "@effect/platform-node": "^4.0.0",
-    "@samebase/alchemy-cloudflare-workers-builds": "0.4.0",
-    "@samebase/alchemy-convex": "0.1.0",
+    "@samebase/alchemy-cloudflare-workers-builds": "0.5.0",
+    "@samebase/alchemy-convex": "0.2.0",
     "@types/node": "^24.0.0",
     "alchemy": "2.0.0-beta.80",
     "convex-test": "^0.0.56",

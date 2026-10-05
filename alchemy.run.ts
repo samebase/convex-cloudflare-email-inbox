@@ -55,17 +55,34 @@ export default Alchemy.Stack(
       Alchemy.RemovalPolicy.retain(),
     );
 
-    // Found by name. A delete of the project deletes all of its deployments
-    // and data, and each change of its props is a replacement. Retain it.
+    // Found by name when it has no state, then by id. A delete of the
+    // project deletes all of its deployments and data. Convex.Project
+    // retains by default since alchemy-convex 0.2.0; the explicit retain
+    // keeps that visible here.
     const project = yield* Convex.Project("Project", {
       team: CONVEX_TEAM,
       name: CONVEX_PROJECT,
     }).pipe(Alchemy.RemovalPolicy.retain());
     const deployment = project.prodDeploymentName.as<string>();
 
+    // Convex lists each key under its name plus a hash of the resource, such
+    // as "workers-builds-3f2a1b0c9d8e". A key cannot change, so a changed prop
+    // replaces it, and the Builds variables and the inbox wiring below take
+    // the new secret. A replaced key made by alchemy-convex 0.1.x stays in
+    // Convex with a warning: delete it in the Convex dashboard.
+    //
+    // The production key gets only what apps/mail/scripts/build-cloudflare.ts
+    // and the inbox wiring need. Without allowedActions, Convex grants every
+    // deployment action, including data writes and backup deletes.
     const deployKey = yield* Convex.DeployKey("DeployKey", {
       deployment,
       name: "workers-builds",
+      allowedActions: [
+        "deployment:deploy",
+        "deployment:env:view",
+        "deployment:env:write",
+        "deployment:data:view",
+      ],
     });
     const previewKey = yield* Convex.PreviewDeployKey("PreviewDeployKey", {
       projectId: project.projectId,
