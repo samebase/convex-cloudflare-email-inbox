@@ -4,7 +4,7 @@ const generatedFiles = [
   ".agents/**",
   "apps/mail/convex/_generated/**",
   "apps/mail/src/routeTree.gen.ts",
-  "apps/mail/worker-configuration.d.ts",
+  "apps/mail/.cloudflare/**",
   "packages/*/src/component/_generated/**",
   "**/dist/**",
 ];

@@ -11,10 +11,22 @@ name: infra
 
 on:
   pull_request:
-    paths: [alchemy.run.ts, package.json, pnpm-lock.yaml, .github/workflows/infra.yml]
+    paths:
+      - alchemy.run.ts
+      - apps/mail/cloudflare.config.ts
+      - packages/convex-cloudflare-email-inbox/alchemy.ts
+      - package.json
+      - pnpm-lock.yaml
+      - .github/workflows/infra.yml
   push:
     branches: [main]
-    paths: [alchemy.run.ts, package.json, pnpm-lock.yaml, .github/workflows/infra.yml]
+    paths:
+      - alchemy.run.ts
+      - apps/mail/cloudflare.config.ts
+      - packages/convex-cloudflare-email-inbox/alchemy.ts
+      - package.json
+      - pnpm-lock.yaml
+      - .github/workflows/infra.yml
   workflow_dispatch:
     inputs:
       adopt:

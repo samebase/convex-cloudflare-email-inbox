@@ -5,8 +5,9 @@
 // "files" in package.json does not list it.
 //
 // The function declares only values that two sides must share and that
-// nobody edits by hand: the bridge secret, the Worker URL, the storage, and
-// the catch-all rule. The sending credentials the component reads
+// nobody edits by hand: the bridge secret, the Worker URL, and the catch-all
+// rule. The storage buckets are bindings of the Worker, named in its
+// cloudflare.config.ts. The sending credentials the component reads
 // (CLOUDFLARE_EMAIL_API_TOKEN and CLOUDFLARE_EMAIL_ACCOUNT_ID) are operator
 // settings and stay in the Convex dashboard.
 import * as WorkersBuilds from "@samebase/alchemy-cloudflare-workers-builds";
@@ -21,8 +22,8 @@ import type * as Redacted from "effect/Redacted";
 export interface EmailInboxProps {
   /**
    * The Worker that runs the handler from "./worker". It gets the secret
-   * MAIL_BRIDGE_SECRET. Its name is the bucket name, and `<name>-previews`
-   * is the preview bucket name: wrangler.jsonc binds both as MAIL_STORAGE.
+   * MAIL_BRIDGE_SECRET. Its cloudflare.config.ts binds the storage bucket
+   * and the preview bucket as MAIL_STORAGE.
    */
   readonly worker: WorkersBuilds.Worker;
   /** The Convex deployment that runs the component, and a deploy key of it. */
@@ -33,12 +34,12 @@ export interface EmailInboxProps {
 }
 
 /**
- * The setup of one inbox: the storage and the routing on Cloudflare, and the
- * secret and the URL that let the Worker and Convex trust each other. The
- * resources go under `id` in the stack state.
+ * The setup of one inbox: the routing on Cloudflare, and the secret and the
+ * URL that let the Worker and Convex trust each other. The resources go
+ * under `id` in the stack state.
  *
- * The buckets and the catch-all rule are retained on destroy: a destroy
- * removes them from state and leaves the mail and the routing in place.
+ * The catch-all rule is retained on destroy: a destroy removes it from state
+ * and leaves the routing in place.
  */
 export const EmailInbox = (id: string, props: EmailInboxProps) =>
   Namespace.push(
@@ -76,17 +77,10 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
         value: workerUrl,
       });
 
-      // The first install declared the three resources below at the root of
-      // the stack. The former ids move their state rows here. Remove the
-      // renamedFrom calls after one deploy.
-      yield* Cloudflare.R2.Bucket("Storage", { name: workerName }).pipe(
-        Alchemy.RemovalPolicy.retain(),
-        Alchemy.renamedFrom({ fqn: "Storage" }),
-      );
-      yield* Cloudflare.R2.Bucket("PreviewStorage", {
-        name: Output.interpolate`${workerName}-previews`,
-      }).pipe(Alchemy.RemovalPolicy.retain(), Alchemy.renamedFrom({ fqn: "PreviewStorage" }));
-
+      // The first install declared the catch-all at the root of the stack.
+      // The former id moves its state row here. Remove the renamedFrom call
+      // after one deploy.
+      //
       // Email Routing itself stays enabled from the dashboard: Alchemy's
       // Routing resource calls the enable endpoint on every create, and
       // Cloudflare does not document that call on a zone that is already

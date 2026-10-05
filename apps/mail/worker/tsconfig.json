@@ -3,7 +3,8 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["../worker-configuration.d.ts"],
+    // "node" is for cloudflare.config.ts, which the generated Env types import.
+    "types": ["node", "../.cloudflare/types/index.d.ts"],
     "strict": true,
     "exactOptionalPropertyTypes": true,
     "noUncheckedSideEffectImports": true,

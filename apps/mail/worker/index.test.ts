@@ -1,16 +1,10 @@
-/// <reference types="node" />
-import { readFileSync } from "node:fs";
-import { parseConfigFileTextToJson } from "typescript";
 import { describe, expect, it } from "vite-plus/test";
+import { worker as workerConfig } from "../cloudflare.config";
 import worker from "./index";
 
 describe("Worker object downloads", () => {
   it("routes object downloads through the Worker before SPA assets", () => {
-    const source = readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
-    const parsed = parseConfigFileTextToJson("wrangler.jsonc", source);
-    const config: unknown = parsed.config;
-    expect(parsed.error).toBeUndefined();
-    expect(config).toMatchObject({ assets: { run_worker_first: ["/api/mail/object"] } });
+    expect(workerConfig.assets.runWorkerFirst).toEqual(["/api/mail/object"]);
   });
 
   it("does not read R2 when the object signing secret is missing", async () => {
