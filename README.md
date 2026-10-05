@@ -65,4 +65,58 @@ Licensed under [Apache License 2.0](./LICENSE).
 
 ## Setup stack
 
-`alchemy.run.ts` declares the Worker, its Workers Builds link to this repository, the Convex deploy keys the builds use, the two mail buckets, and the catch-all rule on `json.md`. Workers Builds deploys from `apps/mail/wrangler.jsonc`; the stack never uploads code. `.github/workflows/infra.yml` runs it: a plan and a drift report on pull requests that touch the file, a deploy on `main`. Its state is Alchemy's Cloudflare state store, created once per account with `npx alchemy provider cloudflare bootstrap`. Locally, `npx alchemy plan --stage prod` works with the same values in `.env`.
+`alchemy.run.ts` declares the setup around Workers Builds: the Worker, its Workers Builds link to
+this repository, the Convex project with the deploy keys the builds use, and the inbox wiring from
+`packages/convex-cloudflare-email-inbox/alchemy.ts`: the production `MAIL_BRIDGE_SECRET` on the
+Worker and in Convex, `MAIL_WORKER_URL` in Convex, the two mail buckets, and the catch-all rule of
+the mail zone. Workers Builds deploys the code from `apps/mail/wrangler.jsonc`. The stack never
+uploads code. `.github/workflows/infra.yml` runs the stack: a plan and a drift report on pull
+requests that touch the file, and a deploy on `main`. The state is in Alchemy's Cloudflare state
+store.
+
+The stack owns wiring, not settings. It declares only values that two sides must share and that
+nobody edits by hand. The settings below stay in the dashboards, where you can read and change
+them.
+
+### Credentials
+
+Put `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in `.env` for local runs. The workflow reads
+them and `CONVEX_ACCESS_TOKEN` (a Convex team access token) from repository secrets. Locally, the
+Convex CLI login is enough. The API token needs these permissions: Workers Scripts, Workers Builds
+Configuration, Account Settings Read, Secrets Store, Workers R2 Storage, Email Routing Rules, Zone
+Read, and DNS.
+
+### Settings the stack does not touch
+
+| Where                                                | Name                          | Value                                                                                       |
+| ---------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------- |
+| Convex production, and preview defaults              | `OWNER_EMAIL`                 | The only email that can sign in                                                             |
+| Convex production, and preview defaults              | `OWNER_SETUP_SECRET`          | The code for the first sign-up                                                              |
+| Convex production                                    | `CLOUDFLARE_EMAIL_API_TOKEN`  | Cloudflare Email Sending token                                                              |
+| Convex production, and preview defaults              | `CLOUDFLARE_EMAIL_ACCOUNT_ID` | Cloudflare account of the verified sending domain                                           |
+| Worker secret                                        | `MAIL_RECOVERY_ADDRESS`       | Gets a copy of the mail that the Worker cannot store. A verified Email Routing destination. |
+| Worker preview settings, and Convex preview defaults | `MAIL_BRIDGE_SECRET`          | One random value for previews, the same in both places                                      |
+
+### Manual steps
+
+1. Install the Cloudflare Workers and Pages GitHub App on the repository, once for each account.
+   Start from **Workers & Pages** in the Cloudflare dashboard.
+2. Enable Email Routing on the mail zone, and verify the recovery address as a destination, in the
+   Cloudflare dashboard.
+3. Set the settings above.
+
+### Fresh install
+
+1. Fork the repository. Change the four values at the top of `alchemy.run.ts`.
+2. Create the Alchemy state store once for each Cloudflare account:
+   `npx alchemy provider cloudflare bootstrap`.
+3. Do manual steps 1 and 2.
+4. Run `npx alchemy deploy --stage prod`.
+5. Do manual step 3.
+6. Push once to `main`. Workers Builds then deploys Convex and the Worker.
+
+A second install in the same account needs a new stack name and Worker name. Then also change the
+two bucket names in `apps/mail/wrangler.jsonc` to `<worker>` and `<worker>-previews`. The app
+names its mail domain `json.md` in `apps/mail/convex/bootstrap.ts` and
+`apps/mail/src/components/mail/MailWorkspace.tsx`. For a different zone, change the domain in these
+two files.

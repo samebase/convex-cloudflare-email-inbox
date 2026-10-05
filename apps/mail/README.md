@@ -56,8 +56,11 @@ The following Convex environment variables configure the app:
 
 The Worker uses `MAIL_BRIDGE_SECRET` and `MAIL_RECOVERY_ADDRESS` as secrets. The recovery address
 must be a verified Cloudflare Email Routing destination. It only receives a copy when storage or
-the Convex handoff fails. `wrangler.jsonc` supplies the Convex site URL and binds `MAIL_STORAGE`,
-and `ASSETS`. Sending runs in the Convex component, not the Worker.
+the Convex handoff fails. The [setup stack](../../README.md#setup-stack) sets `MAIL_BRIDGE_SECRET` on the Worker and in
+Convex production, and `MAIL_WORKER_URL` in Convex production. The other variables and
+`MAIL_RECOVERY_ADDRESS` are set by hand. The deploy commands set `CONVEX_SITE_URL` to the Convex
+site URL of the same build. `wrangler.jsonc` binds `MAIL_STORAGE` and `ASSETS`. Sending runs in the Convex
+component, not the Worker.
 
 To create the two initial inboxes in a deployment, run:
 
@@ -74,7 +77,7 @@ Add `--prod` for production.
 | `pnpm run check`          | Format, lint, type-check, and test the app            |
 | `pnpm run build`          | Run the complete Cloudflare build path                |
 | `pnpm run deploy:dry-run` | Build and validate a Worker upload without publishing |
-| `pnpm run deploy`         | Deploy the production Worker                          |
+| `pnpm run deploy`         | Deploy the production Worker after the Workers build  |
 
 Cloudflare Workers Builds deploys `main` to production. The standard build scripts select the
 branch's Convex deployment and preserve existing auth keys. For provider setup, use the
@@ -84,11 +87,11 @@ Mail previews use the `samebase-mail-previews` R2 bucket. The preview deploy com
 `CONVEX_SITE_URL` to the Convex URL from that branch's build. It also sets `MAIL_WORKER_URL` in
 that Convex preview. Production mail storage and email routing stay unchanged.
 
-Previews Base holds test runtime settings. The Worker and Convex preview need matching test
-`MAIL_BRIDGE_SECRET` values. Set the test `MAIL_BRIDGE_SECRET`, `OWNER_EMAIL`, and
-`OWNER_SETUP_SECRET` as Convex project defaults for preview deployments only. Leave sending
-credentials unset in previews unless they use an isolated test account. Do not reuse production secrets or
-route the live inbox to a preview.
+Set `OWNER_EMAIL`, `OWNER_SETUP_SECRET`, and `CLOUDFLARE_EMAIL_ACCOUNT_ID` as Convex project
+defaults for preview deployments. The preview Worker and the Convex preview need a matching test
+`MAIL_BRIDGE_SECRET`. Set it in the preview settings of the Worker and in the Convex preview
+defaults. Leave sending credentials unset in
+previews unless they use an isolated test account. Do not route the live inbox to a preview.
 
 ## Mail delivery rules
 

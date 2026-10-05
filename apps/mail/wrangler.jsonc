@@ -6,9 +6,7 @@
   "previews": {
     "r2_buckets": [{ "binding": "MAIL_STORAGE", "bucket_name": "samebase-mail-previews" }],
   },
-  "vars": {
-    "CONVEX_SITE_URL": "https://sensible-porcupine-30.convex.site",
-  },
+  // scripts/deploy-mail.ts sets CONVEX_SITE_URL from the Convex deploy of each build.
   "r2_buckets": [
     {
       "binding": "MAIL_STORAGE",
