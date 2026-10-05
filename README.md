@@ -65,4 +65,4 @@ Licensed under [Apache License 2.0](./LICENSE).
 
 ## Setup stack
 
-`alchemy.run.ts` declares the Worker, its Workers Builds link to this repository, the Convex deploy keys the builds use, the two mail buckets, and the catch-all rule on `json.md`. Workers Builds deploys from `apps/mail/wrangler.jsonc`; the stack never uploads code. Run it with `npx alchemy deploy` and a Cloudflare API token in `.env`.
+`alchemy.run.ts` declares the Worker, its Workers Builds link to this repository, the Convex deploy keys the builds use, the two mail buckets, and the catch-all rule on `json.md`. Workers Builds deploys from `apps/mail/wrangler.jsonc`; the stack never uploads code. `.github/workflows/infra.yml` runs it: a plan and a drift report on pull requests that touch the file, a deploy on `main`. Its state is Alchemy's Cloudflare state store, created once per account with `npx alchemy provider cloudflare bootstrap`. Locally, `npx alchemy plan --stage prod` works with the same values in `.env`.
