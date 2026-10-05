@@ -11,7 +11,7 @@
 //
 // The buckets are retained on destroy: a destroy removes them from state and
 // leaves the mail in place.
-import * as WorkersBuilds from "@samebase/alchemy-cloudflare-workers";
+import * as WorkersBuilds from "@samebase/alchemy-cloudflare-workers-builds";
 import * as Convex from "@samebase/alchemy-convex";
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
