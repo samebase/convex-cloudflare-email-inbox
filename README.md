@@ -107,7 +107,7 @@ Read, and DNS.
 
 ### Fresh install
 
-1. Fork the repository. Change the four names at the top of `alchemy.run.ts`.
+1. Fork the repository. Change the four values at the top of `alchemy.run.ts`.
 2. Create the Alchemy state store once for each Cloudflare account:
    `npx alchemy provider cloudflare bootstrap`.
 3. Do manual steps 1 and 2.

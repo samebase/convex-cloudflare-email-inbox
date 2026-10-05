@@ -17,7 +17,7 @@
 // Routing rules, Zone read, DNS) and the Convex CLI login:
 //   npx alchemy plan --stage prod
 //
-// A fork changes the four names below. The repository comes from the origin
+// A fork changes the four values below. The repository comes from the origin
 // remote of the clone, or from GITHUB_REPOSITORY in GitHub Actions.
 import * as WorkersBuilds from "@samebase/alchemy-cloudflare-workers-builds";
 import * as Convex from "@samebase/alchemy-convex";
@@ -29,7 +29,9 @@ import * as Layer from "effect/Layer";
 import { EmailInbox } from "./packages/convex-cloudflare-email-inbox/alchemy.ts";
 
 const WORKER_NAME = "samebase-mail";
-const CONVEX_TEAM = "nicu";
+// The team id, not the slug: CI authenticates with a team access token, and
+// Convex answers the slug lookup only for a user login.
+const CONVEX_TEAM = 38516;
 const CONVEX_PROJECT = "mail";
 const MAIL_ZONE = "json.md";
 
