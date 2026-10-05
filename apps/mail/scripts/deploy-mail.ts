@@ -6,13 +6,12 @@
 // from package.json directly.
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { appendFile, mkdir } from "node:fs/promises";
+import { appendFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { z } from "zod";
-import { worker } from "../cloudflare.config.ts";
 
 const run = promisify(execFile);
 const cfEntrypoint = fileURLToPath(new URL("./bin/cf", import.meta.resolve("cf/package.json")));
@@ -43,7 +42,7 @@ if (outputFilePath) {
   const entry = {
     version: 1,
     type: "preview",
-    worker_name: worker.name,
+    worker_name: await deployedWorkerName(),
     ...preview,
     timestamp: new Date().toISOString(),
   };
@@ -71,6 +70,18 @@ console.log(`Mail preview deployed: ${preview.preview_urls[0]}`);
 function lastJsonObject(output: string): unknown {
   const start = output.lastIndexOf("\n{");
   return JSON.parse(output.slice(start === -1 ? output.indexOf("{") : start + 1));
+}
+
+// The name of the Worker that `cf previews deploy --prebuilt` uploaded, from
+// the Build Output. cloudflare.config.ts cannot be imported here: it fails
+// closed without VITE_CONVEX_SITE_URL, which Convex sets only for the build
+// command, not for the deploy command.
+async function deployedWorkerName() {
+  const file = new URL(
+    "../.cloudflare/output/v0/workers/default/worker.config.json",
+    import.meta.url,
+  );
+  return z.object({ name: z.string() }).parse(JSON.parse(await readFile(file, "utf8"))).name;
 }
 
 // Wrangler's output-file protocol (packages/workers-utils/src/output.ts in
