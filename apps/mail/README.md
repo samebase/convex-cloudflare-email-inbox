@@ -42,7 +42,7 @@ The development command builds and watches the package, then starts Convex and T
 Leave Cloudflare sending credentials unset locally to prevent real email. Use
 Cloudflare's local email-event endpoint when testing the Worker handler.
 
-Mail's local environment files live in `apps/mail`, beside `convex.json` and `wrangler.jsonc`.
+Mail's local environment files live in `apps/mail`, beside `convex.json` and `cloudflare.config.ts`.
 The following Convex environment variables configure the app:
 
 | Name                          | Purpose                                                        |
@@ -58,9 +58,9 @@ The Worker uses `MAIL_BRIDGE_SECRET` and `MAIL_RECOVERY_ADDRESS` as secrets. The
 must be a verified Cloudflare Email Routing destination. It only receives a copy when storage or
 the Convex handoff fails. The [setup stack](../../README.md#setup-stack) sets `MAIL_BRIDGE_SECRET` on the Worker and in
 Convex production, and `MAIL_WORKER_URL` in Convex production. The other variables and
-`MAIL_RECOVERY_ADDRESS` are set by hand. The deploy commands set `CONVEX_SITE_URL` to the Convex
-site URL of the same build. `wrangler.jsonc` binds `MAIL_STORAGE` and `ASSETS`. Sending runs in the Convex
-component, not the Worker.
+`MAIL_RECOVERY_ADDRESS` are set by hand. `cloudflare.config.ts` declares the two secrets, binds
+`MAIL_STORAGE` and `ASSETS`, and sets `CONVEX_SITE_URL` to the Convex site URL of the same build
+when the build writes the Worker. Sending runs in the Convex component, not the Worker.
 
 To create the two initial inboxes in a deployment, run:
 
@@ -79,13 +79,20 @@ Add `--prod` for production.
 | `pnpm run deploy:dry-run` | Build and validate a Worker upload without publishing |
 | `pnpm run deploy`         | Deploy the production Worker after the Workers build  |
 
+`cloudflare.config.ts` is the configuration of the Worker. The build writes its Build Output to
+`.cloudflare/output/v0/` with the Wrangler bundler (`scripts/build-worker.ts`), and the deploy
+commands upload that output with `cf deploy --prebuilt` or `cf previews deploy --prebuilt`.
+`wrangler.config.ts` holds the build settings of the Wrangler bundler. `cf workers types` writes
+the `Env` type of the Worker to `.cloudflare/types/index.d.ts`.
+
 Cloudflare Workers Builds deploys `main` to production. The standard build scripts select the
 branch's Convex deployment and preserve existing auth keys. For provider setup, use the
 [Worker Previews migration guide](https://samebase.com/docs/cloudflare-previews-migration).
 
-Mail previews use the `samebase-mail-previews` R2 bucket. The preview deploy command sets
-`CONVEX_SITE_URL` to the Convex URL from that branch's build. It also sets `MAIL_WORKER_URL` in
-that Convex preview. Production mail storage and email routing stay unchanged.
+Mail previews use the `samebase-mail-previews` R2 bucket. A Workers build on a branch other than
+`main` writes a Preview build with that bucket and the Convex site URL of the branch. The preview
+deploy command uploads it and sets `MAIL_WORKER_URL` in that Convex preview. Production mail
+storage and email routing stay unchanged.
 
 Set `OWNER_EMAIL`, `OWNER_SETUP_SECRET`, and `CLOUDFLARE_EMAIL_ACCOUNT_ID` as Convex project
 defaults for preview deployments. The preview Worker and the Convex preview need a matching test
