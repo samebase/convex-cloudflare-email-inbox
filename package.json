@@ -24,8 +24,13 @@
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
+    "@effect/platform-node": "^4.0.0",
+    "@samebase/alchemy-cloudflare-workers": "0.2.0",
+    "@samebase/alchemy-convex": "0.1.0",
     "@types/node": "^24.0.0",
+    "alchemy": "2.0.0-beta.80",
     "convex-test": "^0.0.56",
+    "effect": "^4.0.0",
     "typescript": "~6.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
