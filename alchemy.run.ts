@@ -4,10 +4,12 @@
 // the inbound routing on json.md. It never uploads Worker code;
 // apps/mail/wrangler.jsonc stays the source of truth for that.
 //
-// Run locally with CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in .env (a
-// user token with Workers Scripts, Workers Builds Configuration, R2, Email
+// .github/workflows/infra.yml runs it: a plan and a drift report on every
+// pull request that touches this file, a deploy on main. Locally it needs
+// CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in .env (a user token with
+// Workers Scripts, Workers Builds Configuration, Secrets Store, R2, Email
 // Routing rules and addresses, Zone read, DNS) and the Convex CLI login:
-//   npx alchemy deploy --adopt
+//   npx alchemy plan --stage prod
 //
 // The buckets are retained on destroy: a destroy removes them from state and
 // leaves the mail in place.
@@ -37,7 +39,9 @@ export default Alchemy.Stack(
       WorkersBuilds.providers(),
       Convex.providers(),
     ),
-    state: Alchemy.localState(),
+    // State lives in the Cloudflare state store (an encrypted Durable Object in
+    // the account), so the laptop and .github/workflows/infra.yml share it.
+    state: Cloudflare.state(),
   },
   Effect.gen(function* () {
     // Only the name: every other Worker setting stays with wrangler.jsonc.

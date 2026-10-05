@@ -1,0 +1,66 @@
+# Runs the setup stack in alchemy.run.ts. Workers Builds keeps deploying the
+# code on every push; this workflow only applies the setup around it: the
+# Worker shell, the Builds link, and the Convex keys.
+#
+# Pull request: a plan, read-only, as a check. Push to main: a deploy. Both
+# compare against the live providers (--detect-drift), so a deleted key or a
+# changed setting is repaired, not only a changed run file. The state is
+# Alchemy's Cloudflare state store.
+name: infra
+
+on:
+  pull_request:
+    paths: [alchemy.run.ts, package.json, pnpm-lock.yaml, .github/workflows/infra.yml]
+  push:
+    branches: [main]
+    paths: [alchemy.run.ts, package.json, pnpm-lock.yaml, .github/workflows/infra.yml]
+  workflow_dispatch:
+    inputs:
+      adopt:
+        description: Adopt resources that exist but are not in state yet
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infra
+  cancel-in-progress: false
+
+env:
+  CI: "true"
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  CONVEX_ACCESS_TOKEN: ${{ secrets.CONVEX_ACCESS_TOKEN }}
+
+jobs:
+  plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: npx alchemy plan --stage prod --adopt --no-input --detailed
+      # Read-only: reports resources that changed outside the stack.
+      - run: npx alchemy drift --stage prod --no-input
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: npx alchemy deploy --stage prod --yes --no-input --detect-drift ${{ inputs.adopt && '--adopt' || '' }}
