@@ -6,7 +6,7 @@
     "convex": "1.45.0",
     "convex-test": "0.0.56",
     "typescript": "6.0.2",
-    "vite": "8.0.0",
+    "vite": "8.0.16",
     "vitest": "4.1.11"
   }
 }
