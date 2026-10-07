@@ -28,6 +28,7 @@
     "alchemy.run.ts",
     "scripts/**/*.ts",
     "packages/*/scripts/**/*.ts",
+    "packages/*/src/alchemy.test.ts",
     "packages/*/vite.config.ts",
     "vite.config.ts"
   ]
