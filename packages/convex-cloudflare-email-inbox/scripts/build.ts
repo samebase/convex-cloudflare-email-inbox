@@ -14,9 +14,8 @@ const result = spawnSync(
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 
-// The Worker that EmailInbox from "./alchemy" uploads when the caller passes
-// no Worker: one ES module with every dependency inside, which Alchemy
-// uploads byte for byte.
+// The Worker that EmailInbox from "./alchemy" uploads: one ES module with
+// every dependency inside, which Alchemy uploads byte for byte.
 await build({
   entryPoints: [fileURLToPath(new URL("../src/worker/entry.ts", import.meta.url))],
   outfile: fileURLToPath(new URL("../dist/worker.bundle.js", import.meta.url)),

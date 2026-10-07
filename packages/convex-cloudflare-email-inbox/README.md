@@ -6,10 +6,8 @@ runtime. Sending without attachments does not require a Worker or R2 bucket. Rec
 complete raw email and named attachments in your R2 bucket, with inbox data in your Convex deployment.
 
 There are three imports. `convex.config.js` is the Convex component. `./alchemy` is an Alchemy
-function that sets the bridge secret, `MAIL_WORKER_URL`, and the catch-all rule for a Worker and a
-Convex deployment; it needs `alchemy`, `effect`, `@samebase/alchemy-convex`, and
-`@samebase/alchemy-cloudflare-workers-builds`. The optional React monitor is the
-`@samebase/convex-cloudflare-email-inbox-ui` package.
+function that sets up receiving; it needs `alchemy`, `effect`, and `@samebase/alchemy-convex`. The
+optional React monitor is the `@samebase/convex-cloudflare-email-inbox-ui` package.
 
 ```ts
 import mail from "@samebase/convex-cloudflare-email-inbox/convex.config.js";
@@ -17,18 +15,11 @@ import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import { EmailMonitor } from "@samebase/convex-cloudflare-email-inbox-ui";
 ```
 
-`EmailInbox` attaches to an app Worker that mounts the `./worker` handlers, or owns the Worker
-itself. Without `worker`, it uploads the Worker that the package ships with a new R2 bucket, and it
-needs `convexSiteUrl`, the deployment's `.convex.site` URL; `keep` (default `true`) retains that
-Worker and bucket on destroy. Without `zone`, the function creates no routing rule.
-
-```ts
-// Inside the stack's Effect.gen, yield* one of the two.
-// Attach: the app Worker binds MAIL_STORAGE and sets CONVEX_SITE_URL itself.
-EmailInbox("Mail", { worker, deployment, deployKey, zone });
-// Owned: the function uploads the inbox Worker and its bucket.
-EmailInbox("Mail", { deployment, deployKey, zone, convexSiteUrl });
-```
+Inside a stack, `yield* EmailInbox("Mail", { deployment, deployKey, convexSiteUrl, zone })` uploads
+the Worker that the package ships, with a new R2 bucket, both named `mail-<deployment>`. It sets the
+bridge secret on the Worker and in Convex, `MAIL_WORKER_URL` in Convex, and the catch-all rule of the
+zone. `convexSiteUrl` is the deployment's `.convex.site` URL. A destroy keeps the Worker and the
+bucket unless `DESTROY_APP` is `true`.
 
 ## Install
 
@@ -288,8 +279,8 @@ handler. `createInbox` creates the local mailbox, not DNS records or a Cloudflar
 Raw `.eml` files and named MIME attachments remain in R2. Parsed text and mailbox metadata live in
 Convex. Unknown inboxes are rejected. Repeated raw messages are deduplicated within the recipient's
 inbox. A parse failure retains the raw message. Partial R2 writes can leave objects without a completed
-message; replaying the same raw mail resumes its reservation. Mail additionally supports forwarding
-to a verified recovery address. Provisioning, recovery policy, and orphan cleanup belong to the app.
+message; replaying the same raw mail resumes its reservation. The Worker that `./alchemy` uploads
+rejects a message that it cannot store. Recovery policy and orphan cleanup belong to the app.
 
 ## Tests
 

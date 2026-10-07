@@ -1,6 +1,6 @@
 // The entry of the Worker that the package ships as dist/worker.bundle.js.
-// EmailInbox from "./alchemy" uploads that bundle when the caller passes no
-// Worker of its own. It serves the handlers of "./worker" and nothing else.
+// EmailInbox from "./alchemy" uploads that bundle as the inbox Worker. It
+// serves the handlers of "./worker" and nothing else.
 import { downloadObject, receiveEmail } from "./index.js";
 
 type Environment = Parameters<typeof receiveEmail>[1] & Parameters<typeof downloadObject>[1];
