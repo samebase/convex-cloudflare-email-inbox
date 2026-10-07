@@ -1,0 +1,60 @@
+# Publishes each package's version in its package.json to npm with provenance
+# on every push to main whose version is not on npm yet, then tags it
+# <package>@<version>. The component publishes before the UI package, which
+# peers on it. Uses npm trusted publishing (OIDC): each package's trusted
+# publisher on npmjs.com must name this repository and this workflow file. No
+# npm token is stored. Same shape as release.yml in alchemy-convex and
+# alchemy-cloudflare-workers-builds, once per package.
+name: release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        package: [convex-cloudflare-email-inbox, convex-cloudflare-email-inbox-ui]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - id: version
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "$name@$version is already on npm; nothing to publish"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.version.outputs.publish == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.version.outputs.publish == 'true'
+        run: pnpm run check
+      - if: steps.version.outputs.publish == 'true'
+        working-directory: packages/${{ matrix.package }}
+        run: npm publish --access public --provenance
+      - if: steps.version.outputs.publish == 'true'
+        run: |
+          git tag "${{ matrix.package }}@${{ steps.version.outputs.version }}"
+          git push origin "${{ matrix.package }}@${{ steps.version.outputs.version }}"
