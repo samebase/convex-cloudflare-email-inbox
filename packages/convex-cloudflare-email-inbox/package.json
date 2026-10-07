@@ -89,8 +89,7 @@
     "@samebase/alchemy-convex": "0.2.0",
     "alchemy": "2.0.0-beta.80",
     "convex": "^1.45.0",
-    "convex-test": "^0.0.56",
-    "effect": "^4.0.0"
+    "convex-test": "^0.0.56"
   },
   "peerDependenciesMeta": {
     "@samebase/alchemy-cloudflare-workers-builds": {
@@ -103,9 +102,6 @@
       "optional": true
     },
     "convex-test": {
-      "optional": true
-    },
-    "effect": {
       "optional": true
     }
   }
