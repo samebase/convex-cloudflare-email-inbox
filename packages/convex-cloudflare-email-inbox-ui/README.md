@@ -3,6 +3,16 @@
 A read-only email monitor inside your React app. It reads the records from your app's
 `@samebase/convex-cloudflare-email-inbox` component. It needs no separate server or login.
 
+This package is one of three imports. The backend package supplies the other two:
+`convex.config.js`, the Convex component, and `./alchemy`, the Alchemy function that wires the
+Worker and the Convex deployment.
+
+```ts
+import mail from "@samebase/convex-cloudflare-email-inbox/convex.config.js";
+import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
+import { EmailMonitor } from "@samebase/convex-cloudflare-email-inbox-ui";
+```
+
 ```sh
 pnpm add @samebase/convex-cloudflare-email-inbox-ui @samebase/convex-cloudflare-email-inbox convex react
 ```

@@ -5,6 +5,18 @@ a Convex component. It sends through the official Cloudflare Email Service SDK i
 runtime. Sending without attachments does not require a Worker or R2 bucket. Receiving stores the
 complete raw email and named attachments in your R2 bucket, with inbox data in your Convex deployment.
 
+There are three imports. `convex.config.js` is the Convex component. `./alchemy` is an Alchemy
+function that sets the bridge secret, `MAIL_WORKER_URL`, and the catch-all rule for a Worker and a
+Convex deployment; it needs `alchemy`, `effect`, `@samebase/alchemy-convex`, and
+`@samebase/alchemy-cloudflare-workers-builds`. The optional React monitor is the
+`@samebase/convex-cloudflare-email-inbox-ui` package.
+
+```ts
+import mail from "@samebase/convex-cloudflare-email-inbox/convex.config.js";
+import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
+import { EmailMonitor } from "@samebase/convex-cloudflare-email-inbox-ui";
+```
+
 ## Install
 
 ```sh
