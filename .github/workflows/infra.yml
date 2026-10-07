@@ -1,6 +1,7 @@
-# Runs the setup stack in alchemy.run.ts. Workers Builds keeps deploying the
-# app code on every push; this workflow applies the setup around it: the
-# Worker shell, the Builds link, the Convex project and keys, and the inbox:
+# Runs the setup stack in apps/mail/alchemy.run.ts, from apps/mail. Workers
+# Builds keeps deploying the app code on every push; this workflow applies
+# the setup around it: the Worker shell, the Builds link, the Convex project
+# and keys, and the inbox:
 # its Worker (the component's Alchemy Worker, which Alchemy bundles here),
 # its bucket, the bridge secret, the Worker URL, and the routing.
 #
@@ -13,23 +14,23 @@ name: infra
 on:
   pull_request:
     paths:
-      - alchemy.run.ts
+      - apps/mail/alchemy.run.ts
       - apps/mail/cloudflare.config.ts
+      - apps/mail/package.json
       - packages/convex-cloudflare-email-inbox/src/**
       - packages/convex-cloudflare-email-inbox/scripts/build.ts
       - packages/convex-cloudflare-email-inbox/package.json
-      - package.json
       - pnpm-lock.yaml
       - .github/workflows/infra.yml
   push:
     branches: [main]
     paths:
-      - alchemy.run.ts
+      - apps/mail/alchemy.run.ts
       - apps/mail/cloudflare.config.ts
+      - apps/mail/package.json
       - packages/convex-cloudflare-email-inbox/src/**
       - packages/convex-cloudflare-email-inbox/scripts/build.ts
       - packages/convex-cloudflare-email-inbox/package.json
-      - package.json
       - pnpm-lock.yaml
       - .github/workflows/infra.yml
   workflow_dispatch:
@@ -74,8 +75,10 @@ jobs:
       # The stack imports EmailInbox from the built component package.
       - run: pnpm --filter @samebase/convex-cloudflare-email-inbox build
       - run: npx alchemy plan --stage prod --adopt --no-input --detailed
+        working-directory: apps/mail
       # Read-only: reports resources that changed outside the stack.
       - run: npx alchemy drift --stage prod --no-input
+        working-directory: apps/mail
 
   deploy:
     if: github.event_name != 'pull_request'
@@ -92,3 +95,4 @@ jobs:
       # The stack imports EmailInbox from the built component package.
       - run: pnpm --filter @samebase/convex-cloudflare-email-inbox build
       - run: npx alchemy deploy --stage prod --yes --no-input --detect-drift ${{ inputs.adopt && '--adopt' || '' }}
+        working-directory: apps/mail

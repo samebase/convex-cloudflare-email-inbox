@@ -4,7 +4,7 @@
 // has are skipped, so a second run copies only what is missing. It prints
 // counts only.
 //
-//   node scripts/copy-mail-objects.ts <source bucket> <target bucket>
+//   node apps/mail/scripts/copy-mail-objects.ts <source bucket> <target bucket>
 //
 // It reads CLOUDFLARE_API_TOKEN (with Workers R2 Storage edit) and
 // CLOUDFLARE_ACCOUNT_ID from the environment. The body and the content type
@@ -17,7 +17,7 @@ const token = process.env["CLOUDFLARE_API_TOKEN"];
 const accountId = process.env["CLOUDFLARE_ACCOUNT_ID"];
 if (!source || !target || !token || !accountId) {
   throw new Error(
-    "Usage: node scripts/copy-mail-objects.ts <source bucket> <target bucket>, with CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID set.",
+    "Usage: node apps/mail/scripts/copy-mail-objects.ts <source bucket> <target bucket>, with CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID set.",
   );
 }
 
