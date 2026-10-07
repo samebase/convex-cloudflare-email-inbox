@@ -55,6 +55,10 @@
       "types": "./dist/client/monitor.d.ts",
       "default": "./dist/client/monitor.js"
     },
+    "./alchemy": {
+      "types": "./dist/alchemy.d.ts",
+      "default": "./dist/alchemy.js"
+    },
     "./test": "./src/test.ts"
   },
   "publishConfig": {
@@ -74,14 +78,34 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@samebase/alchemy-cloudflare-workers-builds": "0.5.0",
+    "@samebase/alchemy-convex": "0.2.0",
+    "alchemy": "2.0.0-beta.80",
+    "effect": "^4.0.0",
     "typescript": "~6.0.2"
   },
   "peerDependencies": {
+    "@samebase/alchemy-cloudflare-workers-builds": "0.5.0",
+    "@samebase/alchemy-convex": "0.2.0",
+    "alchemy": "2.0.0-beta.80",
     "convex": "^1.45.0",
-    "convex-test": "^0.0.56"
+    "convex-test": "^0.0.56",
+    "effect": "^4.0.0"
   },
   "peerDependenciesMeta": {
+    "@samebase/alchemy-cloudflare-workers-builds": {
+      "optional": true
+    },
+    "@samebase/alchemy-convex": {
+      "optional": true
+    },
+    "alchemy": {
+      "optional": true
+    },
     "convex-test": {
+      "optional": true
+    },
+    "effect": {
       "optional": true
     }
   }

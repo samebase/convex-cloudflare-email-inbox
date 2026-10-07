@@ -26,7 +26,6 @@
   },
   "include": [
     "alchemy.run.ts",
-    "packages/*/alchemy.ts",
     "scripts/**/*.ts",
     "packages/*/scripts/**/*.ts",
     "packages/*/vite.config.ts",

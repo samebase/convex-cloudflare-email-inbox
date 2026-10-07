@@ -79,7 +79,7 @@ Licensed under [Apache License 2.0](./LICENSE).
 
 `alchemy.run.ts` declares the setup around Workers Builds: the Worker, its Workers Builds link to
 this repository, the Convex project with the deploy keys the builds use, and the inbox wiring from
-`packages/convex-cloudflare-email-inbox/alchemy.ts`: the production `MAIL_BRIDGE_SECRET` on the
+`@samebase/convex-cloudflare-email-inbox/alchemy`: the production `MAIL_BRIDGE_SECRET` on the
 Worker and in Convex, `MAIL_WORKER_URL` in Convex, and the catch-all rule of the mail zone. Workers
 Builds deploys the code from `apps/mail/cloudflare.config.ts`, which also names the two mail
 buckets that the Worker binds. The stack never uploads code; it imports the Worker name from that

@@ -1,7 +1,7 @@
 // Setup stack for Mail. It keeps Workers Builds as the deployer and declares
 // the setup around it: the Worker shell, its Builds link to this repository,
 // the Convex project with the deploy keys the builds use, and the wiring of
-// the inbox component (packages/convex-cloudflare-email-inbox/alchemy.ts).
+// the inbox component (@samebase/convex-cloudflare-email-inbox/alchemy).
 // It never uploads Worker code; apps/mail/cloudflare.config.ts stays the
 // source of truth for that, and this file imports the Worker name from it.
 //
@@ -22,13 +22,13 @@
 // remote of the clone, or from GITHUB_REPOSITORY in GitHub Actions.
 import * as WorkersBuilds from "@samebase/alchemy-cloudflare-workers-builds";
 import * as Convex from "@samebase/alchemy-convex";
+import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { worker as mailWorker } from "./apps/mail/cloudflare.config.ts";
-import { EmailInbox } from "./packages/convex-cloudflare-email-inbox/alchemy.ts";
 
 // The team id, not the slug: CI authenticates with a team access token, and
 // Convex answers the slug lookup only for a user login.
