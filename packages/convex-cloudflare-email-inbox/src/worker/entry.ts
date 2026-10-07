@@ -1,9 +1,10 @@
 // The inbox Worker as an Alchemy Worker on the Effect runtime. EmailInbox
-// from "../alchemy.ts" declares it with `inbox` and points `main` at this
-// file; Alchemy bundles the file when it deploys, and the Worker runs the
-// default export below. Email events go to receiveEmail, and
-// GET /api/mail/object goes to downloadObject.
+// from "../alchemy.ts" declares it with `inboxWorker`; Alchemy bundles this
+// file when it deploys, and the Worker runs the default export below. Email
+// events go to receiveEmail, and GET /api/mail/object goes to downloadObject.
+import type * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
+import type * as Output from "alchemy/Output";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -16,7 +17,7 @@ import { downloadObject, receiveEmail } from "./index.js";
  * mail. `routing` is the deploy-time routing of the zone's mail to this
  * Worker, which the deployed Worker ignores.
  */
-export const inbox = (
+const inbox = (
   storage: Cloudflare.R2.Bucket | Effect.Effect<Cloudflare.R2.Bucket, never, Cloudflare.Providers>,
   routing: Cloudflare.EmailSubscribeProps,
 ) =>
@@ -65,8 +66,36 @@ export const inbox = (
     ),
   );
 
-export default Cloudflare.Worker(
-  "Worker",
-  { main: import.meta.url },
-  inbox(Cloudflare.R2.Bucket("Storage"), {}),
-);
+/**
+ * The inbox Worker and its bucket, both named `name`. `env` holds the values
+ * that the Worker shares with Convex. The deploy enables Email Routing on
+ * `zone` and points the zone's catch-all rule at the Worker.
+ */
+export const inboxWorker = (props: {
+  readonly name: string | Output.Output<string>;
+  readonly env: {
+    readonly CONVEX_SITE_URL: Alchemy.Input<string>;
+    readonly MAIL_BRIDGE_SECRET: Alchemy.Input<Redacted.Redacted<string>>;
+  };
+  readonly zone: string;
+}) =>
+  Cloudflare.Worker(
+    "Worker",
+    {
+      main: import.meta.url,
+      name: props.name,
+      env: props.env,
+      compatibility: { date: "2026-05-14" },
+    },
+    inbox(Cloudflare.R2.Bucket("Storage", { name: props.name }), { zone: props.zone }),
+  );
+
+// Alchemy's generated Worker entry imports the default export of `main` to
+// find the program (makeEffectVirtualEntry in alchemy's
+// Cloudflare/Workers/Sources/Rolldown.ts). The deployed Worker reads its
+// bindings from its environment, so these props are placeholders.
+export default inboxWorker({
+  name: "mail",
+  env: { CONVEX_SITE_URL: "", MAIL_BRIDGE_SECRET: Redacted.make("") },
+  zone: "",
+});

@@ -11,13 +11,12 @@
 // dashboard.
 import * as Convex from "@samebase/alchemy-convex";
 import * as Alchemy from "alchemy";
-import * as Cloudflare from "alchemy/Cloudflare";
 import * as Namespace from "alchemy/Namespace";
 import * as Output from "alchemy/Output";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import type * as Redacted from "effect/Redacted";
-import { inbox } from "./worker/entry.js";
+import { inboxWorker } from "./worker/entry.js";
 
 export interface EmailInboxProps {
   /**
@@ -64,19 +63,11 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
       // Alchemy makes the secret once and keeps it in state.
       const bridgeSecret = yield* Alchemy.Random("BridgeSecret");
       const name = Output.asOutput(props.deployment).pipe(Output.map(inboxName));
-      const bucket = yield* Cloudflare.R2.Bucket("Storage", { name }).pipe(
-        Alchemy.RemovalPolicy.retain(keep),
-      );
-      const worker = yield* Cloudflare.Worker(
-        "Worker",
-        {
-          name,
-          main: new URL("./worker/entry.js", import.meta.url).href,
-          compatibility: { date: "2026-05-14" },
-          env: { CONVEX_SITE_URL: props.convexSiteUrl, MAIL_BRIDGE_SECRET: bridgeSecret.text },
-        },
-        inbox(bucket, { zone: props.zone }),
-      ).pipe(Alchemy.RemovalPolicy.retain(keep));
+      const worker = yield* inboxWorker({
+        name,
+        env: { CONVEX_SITE_URL: props.convexSiteUrl, MAIL_BRIDGE_SECRET: bridgeSecret.text },
+        zone: props.zone,
+      }).pipe(Alchemy.RemovalPolicy.retain(keep));
       yield* Convex.EnvironmentVariable("ConvexBridgeSecret", {
         deployment: props.deployment,
         deployKey: props.deployKey,
@@ -100,6 +91,6 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
         value: workerUrl,
       });
 
-      return { bucketName: bucket.bucketName, workerUrl: worker.url };
+      return { bucketName: name, workerUrl: worker.url };
     }),
   );

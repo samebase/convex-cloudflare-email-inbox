@@ -78,6 +78,6 @@ const entry = await import(
     ),
   ).href
 );
-assert.equal(typeof entry.inbox, "function");
+assert.equal(typeof entry.inboxWorker, "function");
 assert.equal(typeof entry.default.pipe, "function");
 console.log(`Packed consumer passed. Artifacts retained at ${temporaryRoot}`);
