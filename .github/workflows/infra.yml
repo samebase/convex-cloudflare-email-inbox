@@ -1,7 +1,8 @@
 # Runs the setup stack in alchemy.run.ts. Workers Builds keeps deploying the
-# code on every push; this workflow only applies the setup around it: the
-# Worker shell, the Builds link, the Convex project and keys, and the inbox
-# wiring: the bridge secret, the Worker URL, the buckets, and the routing.
+# app code on every push; this workflow applies the setup around it: the
+# Worker shell, the Builds link, the Convex project and keys, and the inbox:
+# its Worker (the bundle that the component package builds), its bucket, the
+# bridge secret, the Worker URL, and the routing.
 #
 # Pull request: a plan, read-only, as a check. Push to main: a deploy. Both
 # compare against the live providers (--detect-drift), so a deleted key or a
@@ -14,7 +15,9 @@ on:
     paths:
       - alchemy.run.ts
       - apps/mail/cloudflare.config.ts
-      - packages/convex-cloudflare-email-inbox/src/alchemy.ts
+      - packages/convex-cloudflare-email-inbox/src/**
+      - packages/convex-cloudflare-email-inbox/scripts/build.ts
+      - packages/convex-cloudflare-email-inbox/package.json
       - package.json
       - pnpm-lock.yaml
       - .github/workflows/infra.yml
@@ -23,7 +26,9 @@ on:
     paths:
       - alchemy.run.ts
       - apps/mail/cloudflare.config.ts
-      - packages/convex-cloudflare-email-inbox/src/alchemy.ts
+      - packages/convex-cloudflare-email-inbox/src/**
+      - packages/convex-cloudflare-email-inbox/scripts/build.ts
+      - packages/convex-cloudflare-email-inbox/package.json
       - package.json
       - pnpm-lock.yaml
       - .github/workflows/infra.yml

@@ -1,20 +1,20 @@
-// Setup stack for Mail. It keeps Workers Builds as the deployer and declares
-// the setup around it: the Worker shell, its Builds link to this repository,
-// the Convex project with the deploy keys the builds use, and the wiring of
-// the inbox component (@samebase/convex-cloudflare-email-inbox/alchemy).
-// It never uploads Worker code; apps/mail/cloudflare.config.ts stays the
-// source of truth for that, and this file imports the Worker name from it.
+// Setup stack for Mail. It keeps Workers Builds as the deployer of the app
+// and declares the setup around it: the Worker shell, its Builds link to this
+// repository, the Convex project with the deploy keys the builds use, and the
+// inbox of the component (@samebase/convex-cloudflare-email-inbox/alchemy).
+// The only code it uploads is the inbox Worker that the component ships. The
+// app Worker's code stays with apps/mail/cloudflare.config.ts, and this file
+// imports the Worker name from it.
 //
 // The stack owns wiring, not settings. A value that a person opens a
-// dashboard to check (the owner email, the setup secret, the sending token,
-// the recovery address) stays in that dashboard. README.md lists them under
-// "Setup stack".
+// dashboard to check (the owner email, the setup secret, the sending token)
+// stays in that dashboard. README.md lists them under "Setup stack".
 //
 // .github/workflows/infra.yml runs it: a plan and a drift report on every
 // pull request that touches this file, a deploy on main. Locally it needs
 // CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in .env (a user token with
-// Workers Scripts, Workers Builds Configuration, Secrets Store, Email
-// Routing rules, Zone read, DNS) and the Convex CLI login:
+// Workers Scripts, Workers Builds Configuration, Workers R2 Storage, Secrets
+// Store, Email Routing rules, Zone read, DNS) and the Convex CLI login:
 //   npx alchemy plan --stage prod
 //
 // A fork changes the three values below and the Worker name in
@@ -106,13 +106,23 @@ export default Alchemy.Stack(
       previewVariables: { CONVEX_DEPLOY_KEY: previewKey.previewDeployKey },
     });
 
-    yield* EmailInbox("Mail", {
-      worker,
+    // Convex serves HTTP actions at the .convex.site twin of the deployment
+    // URL. The inbox Worker posts inbound mail there.
+    const convexSiteUrl = project.prodDeploymentUrl.pipe(
+      Output.map((url) => {
+        if (!url) {
+          throw new Error(`The Convex project ${CONVEX_PROJECT} has no production deployment.`);
+        }
+        return url.replace(/\.convex\.cloud$/, ".convex.site");
+      }),
+    );
+    const inbox = yield* EmailInbox("Mail", {
       deployment,
       deployKey: deployKey.deployKey,
+      convexSiteUrl,
       zone: MAIL_ZONE,
     });
 
-    return { url: worker.url, previewsEnabled: builds.previewsEnabled };
+    return { url: worker.url, previewsEnabled: builds.previewsEnabled, inbox };
   }),
 );

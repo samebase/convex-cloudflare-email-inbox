@@ -1,9 +1,7 @@
 // Deploys the Worker Preview of a Workers build on a branch other than main,
-// then gives its URL to the Convex preview deployment of the same branch.
-// The Worker bridge must use the same preview backend: scripts/build-worker.ts
-// already baked the Convex site URL into the Build Output, and Convex needs
-// the Worker URL in return. Production deploys run `cf deploy --prebuilt`
-// from package.json directly.
+// then gives its URL to the Convex preview deployment of the same branch as
+// SITE_URL. Production deploys run `cf deploy --prebuilt` from package.json
+// directly.
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { appendFile, mkdir, readFile } from "node:fs/promises";
@@ -52,17 +50,15 @@ if (outputFilePath) {
 const convexEntrypoint = fileURLToPath(
   new URL("../node_modules/convex/bin/main.js", import.meta.url),
 );
-for (const name of ["MAIL_WORKER_URL", "SITE_URL"]) {
-  await run(process.execPath, [
-    convexEntrypoint,
-    "env",
-    "set",
-    "--preview-name",
-    preview.preview_name,
-    name,
-    preview.preview_urls[0],
-  ]);
-}
+await run(process.execPath, [
+  convexEntrypoint,
+  "env",
+  "set",
+  "--preview-name",
+  preview.preview_name,
+  "SITE_URL",
+  preview.preview_urls[0],
+]);
 console.log(`Mail preview deployed: ${preview.preview_urls[0]}`);
 
 // cf prints the result as a JSON object. Progress lines may come before it,
@@ -73,9 +69,7 @@ function lastJsonObject(output: string): unknown {
 }
 
 // The name of the Worker that `cf previews deploy --prebuilt` uploaded, from
-// the Build Output. cloudflare.config.ts cannot be imported here: it fails
-// closed without VITE_CONVEX_SITE_URL, which Convex sets only for the build
-// command, not for the deploy command.
+// the Build Output.
 async function deployedWorkerName() {
   const file = new URL(
     "../.cloudflare/output/v0/workers/default/worker.config.json",
