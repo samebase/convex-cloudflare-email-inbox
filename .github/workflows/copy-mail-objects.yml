@@ -1,0 +1,37 @@
+# One-off: copies every object of one R2 bucket into another with the
+# repository's Cloudflare token, for the move of the stored mail to the inbox
+# Worker's bucket (apps/mail/scripts/copy-mail-objects.ts). Run it by hand
+# with the two bucket names; it skips keys the target already has.
+name: copy-mail-objects
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Source bucket name"
+        required: true
+        type: string
+      target:
+        description: "Target bucket name"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: node apps/mail/scripts/copy-mail-objects.ts "$SOURCE" "$TARGET"
+        env:
+          SOURCE: ${{ inputs.source }}
+          TARGET: ${{ inputs.target }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
