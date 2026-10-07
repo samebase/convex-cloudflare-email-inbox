@@ -1,0 +1,89 @@
+# Publishes the two packages to npm after CI succeeds on main, the same shape as
+# publish.yml in samebase/sidebars: the verified commit is checked out, stable
+# versions only, and JS-DevTools/npm-publish with `strategy: upgrade` publishes a
+# package only when its package.json version is newer than the one on npm. Uses
+# npm trusted publishing (OIDC) for provenance: each package's trusted publisher
+# on npmjs.com must name this repository and this workflow file. No npm token is
+# stored. The component publishes before the UI package, which peers on it.
+name: Publish
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: publish
+    if: >-
+      github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: npm-publish
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout verified commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Select stable releases
+        id: release
+        run: |
+          publish=true
+          for package in packages/convex-cloudflare-email-inbox packages/convex-cloudflare-email-inbox-ui; do
+            version="$(node -p "require('./${package}/package.json').version")"
+            if [[ "${version}" == *-* ]]; then
+              echo "Skip prerelease version ${version} of ${package}."
+              publish=false
+            fi
+          done
+          echo "publish=${publish}" >> "${GITHUB_OUTPUT}"
+
+      - name: Setup pnpm
+        if: steps.release.outputs.publish == 'true'
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+
+      - name: Install dependencies
+        if: steps.release.outputs.publish == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        if: steps.release.outputs.publish == 'true'
+        run: |
+          pnpm --filter @samebase/convex-cloudflare-email-inbox build
+          pnpm --filter @samebase/convex-cloudflare-email-inbox-ui build
+
+      - name: Publish newer stable component
+        if: steps.release.outputs.publish == 'true'
+        uses: JS-DevTools/npm-publish@0fd2f4369c5d6bcfcde6091a7c527d810b9b5c3f # v4.1.5
+        with:
+          package: packages/convex-cloudflare-email-inbox
+          strategy: upgrade
+          tag: latest
+          access: public
+
+      - name: Publish newer stable UI package
+        if: steps.release.outputs.publish == 'true'
+        uses: JS-DevTools/npm-publish@0fd2f4369c5d6bcfcde6091a7c527d810b9b5c3f # v4.1.5
+        with:
+          package: packages/convex-cloudflare-email-inbox-ui
+          strategy: upgrade
+          tag: latest
+          access: public
