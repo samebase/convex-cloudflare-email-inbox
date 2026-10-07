@@ -17,6 +17,19 @@ import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import { EmailMonitor } from "@samebase/convex-cloudflare-email-inbox-ui";
 ```
 
+`EmailInbox` attaches to an app Worker that mounts the `./worker` handlers, or owns the Worker
+itself. Without `worker`, it uploads the Worker that the package ships with a new R2 bucket, and it
+needs `convexSiteUrl`, the deployment's `.convex.site` URL; `keep` (default `true`) retains that
+Worker and bucket on destroy. Without `zone`, the function creates no routing rule.
+
+```ts
+// Inside the stack's Effect.gen, yield* one of the two.
+// Attach: the app Worker binds MAIL_STORAGE and sets CONVEX_SITE_URL itself.
+EmailInbox("Mail", { worker, deployment, deployKey, zone });
+// Owned: the function uploads the inbox Worker and its bucket.
+EmailInbox("Mail", { deployment, deployKey, zone, convexSiteUrl });
+```
+
 ## Install
 
 ```sh
