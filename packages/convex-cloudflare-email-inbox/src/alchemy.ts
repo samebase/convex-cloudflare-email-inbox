@@ -67,7 +67,9 @@ export const ownedWorkerName = (id: string, suffix: string) => {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 54 - suffix.length - 1);
-  return `${prefix}-${suffix}`;
+  // An id with no ASCII letter or digit leaves no prefix, and a name must
+  // not start with a dash.
+  return prefix ? `${prefix}-${suffix}` : suffix;
 };
 
 /**

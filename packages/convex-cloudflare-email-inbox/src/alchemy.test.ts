@@ -39,6 +39,10 @@ describe("ownedWorkerName", () => {
     expect(ownedWorkerName("/Mail/", suffix)).toBe("mail-0123456789abcdef");
   });
 
+  it("uses the suffix alone when the inbox id has no letter or digit it can keep", () => {
+    expect(ownedWorkerName("邮件", suffix)).toBe(suffix);
+  });
+
   it("shortens the inbox id to keep the name within 54 characters", () => {
     const name = ownedWorkerName("Inbox".repeat(20), suffix);
     expect(name).toHaveLength(54);
