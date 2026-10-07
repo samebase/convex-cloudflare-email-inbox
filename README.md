@@ -79,10 +79,11 @@ Licensed under [Apache License 2.0](./LICENSE).
 
 `alchemy.run.ts` declares the setup around Workers Builds: the app Worker, its Workers Builds link
 to this repository, the Convex project with the deploy keys the builds use, and the inbox from
-`@samebase/convex-cloudflare-email-inbox/alchemy`. The inbox is its own Worker, which the component
-package ships, and an R2 bucket, both named `mail-<Convex production deployment>`, with the
-`MAIL_BRIDGE_SECRET` on that Worker and in Convex, `MAIL_WORKER_URL` in Convex, and the catch-all
-rule of the mail zone. Workers Builds deploys the app from `apps/mail/cloudflare.config.ts`; the
+`@samebase/convex-cloudflare-email-inbox/alchemy`. The inbox is its own Worker, an Alchemy Worker
+that the component package ships and Alchemy bundles at deploy time, and an R2 bucket, both named
+`mail-<Convex production deployment>`, with the `MAIL_BRIDGE_SECRET` on that Worker and in Convex,
+and `MAIL_WORKER_URL` in Convex. The inbox Worker enables Email Routing on the mail zone and points
+the zone's catch-all rule at itself. Workers Builds deploys the app from `apps/mail/cloudflare.config.ts`; the
 stack imports the app Worker name from that file. `.github/workflows/infra.yml` runs the stack: a
 plan and a drift report on pull requests that touch these files, and a deploy on `main`. The state
 is in Alchemy's Cloudflare state store.
@@ -97,7 +98,8 @@ Put `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in `.env` for local runs.
 them and `CONVEX_ACCESS_TOKEN` (a Convex team access token) from repository secrets. Locally, the
 Convex CLI login is enough. The API token needs these permissions: Workers Scripts, Workers Builds
 Configuration, Workers R2 Storage, Account Settings Read, Secrets Store, Email Routing Rules, Zone
-Read, and DNS.
+Read, and DNS. Email Routing Rules and DNS edit cover the routing: enabling Email Routing writes the
+zone's MX and SPF records.
 
 ### Settings the stack does not touch
 
@@ -112,8 +114,7 @@ Read, and DNS.
 
 1. Install the Cloudflare Workers and Pages GitHub App on the repository, once for each account.
    Start from **Workers & Pages** in the Cloudflare dashboard.
-2. Enable Email Routing on the mail zone in the Cloudflare dashboard.
-3. Set the settings above.
+2. Set the settings above.
 
 ### Fresh install
 
@@ -121,9 +122,9 @@ Read, and DNS.
    in `apps/mail/cloudflare.config.ts`.
 2. Create the Alchemy state store once for each Cloudflare account:
    `npx alchemy provider cloudflare bootstrap`.
-3. Do manual steps 1 and 2.
+3. Do manual step 1.
 4. Run `npx alchemy deploy --stage prod`.
-5. Do manual step 3.
+5. Do manual step 2.
 6. Push once to `main`. Workers Builds then deploys Convex and the Worker.
 
 A second install in the same account needs a new stack name and Worker name. The inbox Worker and

@@ -1,8 +1,8 @@
 # Runs the setup stack in alchemy.run.ts. Workers Builds keeps deploying the
 # app code on every push; this workflow applies the setup around it: the
 # Worker shell, the Builds link, the Convex project and keys, and the inbox:
-# its Worker (the bundle that the component package builds), its bucket, the
-# bridge secret, the Worker URL, and the routing.
+# its Worker (the component's Alchemy Worker, which Alchemy bundles here),
+# its bucket, the bridge secret, the Worker URL, and the routing.
 #
 # Pull request: a plan, read-only, as a check. Push to main: a deploy. Both
 # compare against the live providers (--detect-drift), so a deleted key or a

@@ -44,22 +44,40 @@ const css = readFileSync(
 assert.match(css, /@layer components/);
 assert.match(css, /var\(--sb-email-border,/);
 assert.doesNotMatch(css, /@apply|@import|@theme|@property|:root|:host|\*\s*[,{]/);
-// EmailInbox uploads this file as the owned Worker. It must load with no
-// other module and export both handlers.
-const workerBundle = await import(
+run(["exec", "--", "tsc", "-p", "tsconfig.json"], consumerRoot);
+run(["exec", "--", "vitest", "run", "consumer.test.ts"], consumerRoot);
+
+// EmailInbox points Alchemy at dist/worker/entry.js, and Alchemy bundles it
+// in the consumer's deploy. The entry must load with the runtime that a stack
+// installs, at the versions of this workspace: alchemy, effect, and
+// @effect/platform-node. The packed tarballs go in again, because an install
+// without them would remove them.
+const workspaceVersion = (name: string) =>
+  JSON.parse(readFileSync(new URL(`../node_modules/${name}/package.json`, import.meta.url), "utf8"))
+    .version;
+run(
+  [
+    "install",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund",
+    "--no-save",
+    ...tarballs.map((filename) => join(tarballRoot, filename)),
+    ...["alchemy", "effect", "@effect/platform-node"].map(
+      (name) => `${name}@${workspaceVersion(name)}`,
+    ),
+  ],
+  consumerRoot,
+);
+const entry = await import(
   pathToFileURL(
     join(
       dirname(require.resolve("@samebase/convex-cloudflare-email-inbox/alchemy")),
-      "worker.bundle.js",
+      "worker",
+      "entry.js",
     ),
   ).href
 );
-assert.equal(typeof workerBundle.default.email, "function");
-assert.equal(typeof workerBundle.default.fetch, "function");
-assert.equal(
-  (await workerBundle.default.fetch(new Request("https://worker.example/"), {})).status,
-  404,
-);
-run(["exec", "--", "tsc", "-p", "tsconfig.json"], consumerRoot);
-run(["exec", "--", "vitest", "run", "consumer.test.ts"], consumerRoot);
+assert.equal(typeof entry.inbox, "function");
+assert.equal(typeof entry.default.pipe, "function");
 console.log(`Packed consumer passed. Artifacts retained at ${temporaryRoot}`);

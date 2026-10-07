@@ -3,8 +3,9 @@
 // Convex deployment must share. It sits next to the component to try the
 // idea that a component ships its own wiring.
 //
-// The function uploads the Worker that the package ships
-// (dist/worker.bundle.js). The app's own Worker stays untouched. The sending
+// The Worker is the Alchemy Worker in ./worker/entry.ts, which the package
+// ships; Alchemy bundles it when it deploys. The app's own Worker stays
+// untouched. The sending
 // credentials the component reads (CLOUDFLARE_EMAIL_API_TOKEN and
 // CLOUDFLARE_EMAIL_ACCOUNT_ID) are operator settings and stay in the Convex
 // dashboard.
@@ -16,6 +17,7 @@ import * as Output from "alchemy/Output";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import type * as Redacted from "effect/Redacted";
+import { inbox } from "./worker/entry.js";
 
 export interface EmailInboxProps {
   /**
@@ -48,12 +50,12 @@ const keep = Effect.gen(function* () {
 }).pipe(Effect.orDie);
 
 /**
- * One inbox: the Worker with its bucket as MAIL_STORAGE, the secret and the
- * URL that let the Worker and Convex trust each other, and the catch-all
- * rule of the zone. The resources go under `id` in the stack state.
+ * One inbox: the Worker with its bucket, the secret and the URL that let the
+ * Worker and Convex trust each other, and the routing of the zone's mail to
+ * the Worker. The resources go under `id` in the stack state.
  *
- * The catch-all rule is retained on destroy: a destroy removes it from state
- * and leaves the routing in place.
+ * The Worker enables Email Routing on the zone and points the zone's
+ * catch-all rule at itself (Cloudflare.email in ./worker/entry.ts).
  */
 export const EmailInbox = (id: string, props: EmailInboxProps) =>
   Namespace.push(
@@ -65,19 +67,16 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
       const bucket = yield* Cloudflare.R2.Bucket("Storage", { name }).pipe(
         Alchemy.RemovalPolicy.retain(keep),
       );
-      const worker = yield* Cloudflare.Worker("Worker", {
-        name,
-        main: new URL("./worker.bundle.js", import.meta.url).href,
-        // The bundle holds every dependency. Upload it alone, byte for byte.
-        bundle: false,
-        rules: [],
-        compatibility: { date: "2026-05-14" },
-        env: {
-          CONVEX_SITE_URL: props.convexSiteUrl,
-          MAIL_BRIDGE_SECRET: bridgeSecret.text,
-          MAIL_STORAGE: bucket,
+      const worker = yield* Cloudflare.Worker(
+        "Worker",
+        {
+          name,
+          main: new URL("./worker/entry.js", import.meta.url).href,
+          compatibility: { date: "2026-05-14" },
+          env: { CONVEX_SITE_URL: props.convexSiteUrl, MAIL_BRIDGE_SECRET: bridgeSecret.text },
         },
-      }).pipe(Alchemy.RemovalPolicy.retain(keep));
+        inbox(bucket, { zone: props.zone }),
+      ).pipe(Alchemy.RemovalPolicy.retain(keep));
       yield* Convex.EnvironmentVariable("ConvexBridgeSecret", {
         deployment: props.deployment,
         deployKey: props.deployKey,
@@ -100,17 +99,6 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
         name: "MAIL_WORKER_URL",
         value: workerUrl,
       });
-
-      // Email Routing itself stays enabled from the dashboard: Alchemy's
-      // Routing resource calls the enable endpoint on every create, and
-      // Cloudflare does not document that call on a zone that is already
-      // enabled.
-      yield* Cloudflare.Email.CatchAll("CatchAll", {
-        zone: props.zone,
-        name: Output.interpolate`${worker.workerName} catch-all`,
-        enabled: true,
-        actions: [{ type: "worker", value: [worker.workerName] }],
-      }).pipe(Alchemy.RemovalPolicy.retain());
 
       return { bucketName: bucket.bucketName, workerUrl: worker.url };
     }),
