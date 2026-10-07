@@ -9,8 +9,17 @@ import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
+import * as Schema from "effect/Schema";
+import * as HttpRouter from "effect/http/HttpRouter";
+import * as HttpServerError from "effect/http/HttpServerError";
+import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { downloadObject, receiveEmail } from "./index.js";
+
+/** The query of an object download: a grant from createObjectGrant, two base64url parts. */
+const ObjectDownload = Schema.Struct({
+  grant: Schema.String.check(Schema.isPattern(/^[\w-]+\.[\w-]+$/)),
+});
 
 /**
  * The program of the inbox Worker. `storage` is the bucket that keeps the
@@ -45,13 +54,14 @@ const inbox = (
       ),
     );
 
-    return {
-      fetch: Effect.gen(function* () {
-        const request = yield* Cloudflare.Request;
-        const url = new URL(request.url);
-        if (request.method !== "GET" || url.pathname !== "/api/mail/object") {
-          return HttpServerResponse.text("Not found", { status: 404 });
-        }
+    // The router answers 400 for a missing or malformed grant and 404 for
+    // any other route.
+    const download = HttpRouter.add(
+      "GET",
+      "/api/mail/object",
+      Effect.gen(function* () {
+        yield* HttpRouter.schemaParams(ObjectDownload);
+        const request = yield* HttpServerRequest.toWeb(yield* HttpServerRequest.HttpServerRequest);
         const env = yield* environment;
         return HttpServerResponse.fromWeb(
           // @ts-expect-error workerd passes an R2 binding; only the declarations of
@@ -59,6 +69,19 @@ const inbox = (
           yield* Effect.promise(() => downloadObject(request, env)),
         );
       }),
+    );
+
+    // The fetch handler of an Alchemy Worker may fail only with HttpServerError
+    // or HttpBodyError. causeResponse, effect's failure boundary, turns the
+    // router's other failures into their responses: the schema error into 400
+    // and RouteNotFound into 404.
+    const fetch = yield* HttpRouter.toHttpEffect(download);
+    return {
+      fetch: fetch.pipe(
+        Effect.catchCause((cause) =>
+          HttpServerError.causeResponse(cause).pipe(Effect.map(([response]) => response)),
+        ),
+      ),
     };
   }).pipe(
     Effect.provide(
@@ -85,7 +108,8 @@ export const inboxWorker = (props: {
       main: import.meta.url,
       name: props.name,
       env: props.env,
-      compatibility: { date: "2026-05-14" },
+      // Pins the runtime semantics this Worker was written against; bump it deliberately.
+      compatibility: { date: "2026-10-08" },
     },
     inbox(Cloudflare.R2.Bucket("Storage", { name: props.name }), { zone: props.zone }),
   );
