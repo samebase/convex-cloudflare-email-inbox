@@ -1,8 +1,7 @@
 // The setup around the component, as one Alchemy function: what a Worker
 // and a Convex deployment need so that the component receives, stores, and
 // serves mail. It sits next to the component to try the idea that a
-// component ships its own wiring. The published package leaves it out:
-// "files" in package.json does not list it.
+// component ships its own wiring.
 //
 // The function declares only values that two sides must share and that
 // nobody edits by hand: the bridge secret, the Worker URL, and the catch-all

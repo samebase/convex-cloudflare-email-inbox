@@ -7,8 +7,8 @@ import { createClient } from "cloudflare/tree-shakable";
 import { Infer, v } from "convex/values";
 import { createMimeMessage, Mailbox } from "mimetext/browser";
 import { z } from "zod";
+import { recipientResults } from "../client/monitor";
 import { outboundAttachment } from "./messageTypes";
-import { recipientResults } from "./schema";
 
 // https://developers.cloudflare.com/email-service/api/send-emails/rest-api/
 export const MAX_OUTBOUND_BYTES = 5 * 1_024 * 1_024;

@@ -7,6 +7,9 @@ const appRoot = fileURLToPath(new URL("../apps/mail", import.meta.url));
 const componentRoot = fileURLToPath(
   new URL("../packages/convex-cloudflare-email-inbox", import.meta.url),
 );
+const uiRoot = fileURLToPath(
+  new URL("../packages/convex-cloudflare-email-inbox-ui", import.meta.url),
+);
 const vitePlusEntrypoint = fileURLToPath(import.meta.resolve("vite-plus/bin"));
 const build = spawnSync(process.execPath, [vitePlusEntrypoint, "run", "component:build"], {
   cwd: workspaceRoot,
@@ -24,13 +27,18 @@ const runner =
       ? "run-worktree-dev.ts"
       : "run-context-dev.ts";
 const forwardedArgs = mode === "--primary" || mode === "--worktree" ? args.slice(1) : args;
-const watcher = spawn(
-  process.execPath,
-  [fileURLToPath(import.meta.resolve("typescript/bin/tsc")), "-p", "tsconfig.json", "--watch"],
-  {
-    cwd: componentRoot,
+const watchers = [componentRoot, uiRoot].map((cwd) =>
+  spawn(
+    process.execPath,
+    [fileURLToPath(import.meta.resolve("typescript/bin/tsc")), "-p", "tsconfig.json", "--watch"],
+    { cwd, stdio: "inherit" },
+  ),
+);
+watchers.push(
+  spawn(process.execPath, [vitePlusEntrypoint, "run", "watch:styles"], {
+    cwd: uiRoot,
     stdio: "inherit",
-  },
+  }),
 );
 const app = spawn(process.execPath, [`./scripts/${runner}`, ...forwardedArgs], {
   cwd: appRoot,
@@ -40,11 +48,11 @@ let stopping = false;
 function stop(code: number) {
   if (stopping) return;
   stopping = true;
-  watcher.kill();
+  for (const watcher of watchers) watcher.kill();
   app.kill();
   process.exitCode = code;
 }
-for (const child of [watcher, app]) {
+for (const child of [...watchers, app]) {
   child.once("error", (error) => {
     console.error(error.message);
     stop(1);

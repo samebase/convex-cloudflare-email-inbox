@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ES2023", "DOM"],
+    "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
@@ -11,12 +12,6 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": [
-    "src/client/**/*.ts",
-    "src/component/**/*.ts",
-    "src/worker/**/*.ts",
-    "src/r2.ts",
-    "src/alchemy.ts"
-  ],
-  "exclude": ["src/**/*.test.ts", "src/**/*.convex.test.ts"]
+  "include": ["src/**/*.tsx"],
+  "exclude": ["src/**/*.test.tsx"]
 }

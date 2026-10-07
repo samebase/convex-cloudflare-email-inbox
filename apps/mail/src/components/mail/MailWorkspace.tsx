@@ -2,12 +2,34 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { usePaginatedQuery } from "convex-helpers/react";
 import type { FunctionReturnType } from "convex/server";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { ArrowLeft, Download, Inbox, LogOut, MailPlus, Paperclip, Plus, Send } from "lucide-react";
+import { ArrowLeft, Inbox, LogOut, MailPlus, Plus, Send } from "lucide-react";
+import {
+  EmailMessage,
+  EmailMonitor,
+  type EmailButtonProps,
+} from "@samebase/convex-cloudflare-email-inbox-ui";
+import "@samebase/convex-cloudflare-email-inbox-ui/styles.css";
 import { type FormEvent, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "#components/ui/button";
 import { Input } from "#components/ui/input";
 import { Textarea } from "#components/ui/textarea";
+import { cn } from "#lib/utils";
+
+function EmailButton({ appearance, className, ...props }: EmailButtonProps) {
+  return (
+    <Button
+      {...props}
+      variant={appearance === "text" ? "link" : "outline"}
+      className={cn(
+        appearance === "text" && "h-auto justify-start p-0 text-left whitespace-normal",
+        className,
+      )}
+    />
+  );
+}
+
+const emailControls = { Button: EmailButton };
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -22,8 +44,6 @@ type ThreadDetail = NonNullable<FunctionReturnType<typeof api.mail.getThread>>;
 type MessageView = FunctionReturnType<typeof api.mail.listMessages>["page"][number];
 type InboxId = InboxSummary["_id"];
 type ThreadId = ThreadSummary["_id"];
-type MessageId = MessageView["_id"];
-type AttachmentId = MessageView["attachments"][number]["_id"];
 type ComposeTarget = { kind: "new" } | { kind: "reply"; threadId: ThreadId } | null;
 
 export function MailWorkspace() {
@@ -34,6 +54,7 @@ export function MailWorkspace() {
   const [composeTarget, setComposeTarget] = useState<ComposeTarget>(null);
   const [mobilePane, setMobilePane] = useState<"inboxes" | "threads" | "message">("inboxes");
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [view, setView] = useState<"inbox" | "history">("inbox");
 
   const {
     results: threads,
@@ -76,11 +97,12 @@ export function MailWorkspace() {
       return;
     }
     setComposeTarget({ kind: "new" });
+    setView("inbox");
     setMobilePane("message");
   };
 
   return (
-    <main className="flex h-dvh min-h-0 flex-col bg-background">
+    <main className="flex h-dvh min-h-0 flex-col bg-background [--sb-email-border:var(--border)] [--sb-email-muted:var(--muted-foreground)] [--sb-email-selected:var(--muted)]">
       <header className="flex h-12 shrink-0 items-center justify-between border-b px-3">
         <div className="flex items-center gap-2 font-medium">
           <span className="grid size-7 place-items-center bg-primary text-primary-foreground">
@@ -89,6 +111,14 @@ export function MailWorkspace() {
           Mail
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => setView(view === "inbox" ? "history" : "inbox")}
+          >
+            {view === "inbox" ? "Email history" : "Inboxes"}
+          </Button>
           <Button type="button" size="sm" disabled={!composeInbox} onClick={beginNewMessage}>
             <MailPlus aria-hidden="true" />
             New message
@@ -109,67 +139,77 @@ export function MailWorkspace() {
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[14rem_22rem_minmax(0,1fr)]">
-        <InboxPane
-          className={mobilePane === "inboxes" ? "flex" : "hidden md:flex"}
-          inboxes={inboxes ?? []}
-          selectedInboxId={selectedInboxId}
-          onSelect={(inboxId) => {
-            setSelectedInboxId(inboxId);
-            setSelectedThreadId(null);
-            setComposeTarget(null);
-            setMobilePane("threads");
-          }}
-        />
-        <ThreadPane
-          className={mobilePane === "threads" ? "flex" : "hidden md:flex"}
-          threads={threads ?? []}
-          selectedThreadId={selectedThreadId}
-          canLoadMore={threadStatus === "CanLoadMore" || threadStatus === "LoadingMore"}
-          isLoading={threadStatus === "LoadingFirstPage" || threadStatus === "LoadingMore"}
-          onBack={() => setMobilePane("inboxes")}
-          onLoadMore={() => loadMoreThreads(50)}
-          onSelect={openThread}
-        />
-        <section
-          className={`${mobilePane === "message" ? "flex" : "hidden md:flex"} min-h-0 flex-col bg-background`}
-        >
-          <div className="flex h-11 shrink-0 items-center border-b px-3 md:hidden">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setMobilePane("threads")}
-            >
-              <ArrowLeft aria-hidden="true" />
-              Threads
-            </Button>
-          </div>
-          {composeTarget && composeInbox ? (
-            <ComposePane
-              key={`${composeInbox._id}-${composeTarget.kind === "reply" ? composeTarget.threadId : "new"}`}
-              inboxId={composeInbox._id}
-              inboxAddress={composeInbox.address}
-              thread={composeTarget.kind === "reply" ? thread : null}
-              latestMessage={composeTarget.kind === "reply" ? messages[0] : undefined}
-              onCancel={() => setComposeTarget(null)}
-              onSent={() => setComposeTarget(null)}
-            />
-          ) : thread ? (
-            <MessagePane
-              thread={thread}
-              messages={messages}
-              canLoadMore={messageStatus === "CanLoadMore" || messageStatus === "LoadingMore"}
-              canReply={Boolean(messages[0]?.replyRecipient)}
-              isLoadingMore={messageStatus === "LoadingMore"}
-              onLoadMore={() => loadMoreMessages(10)}
-              onReply={() => setComposeTarget({ kind: "reply", threadId: thread._id })}
-            />
-          ) : (
-            <EmptyReadingPane hasInboxes={activeInboxes.length > 0} />
-          )}
-        </section>
-      </div>
+      {view === "history" ? (
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+          <EmailMonitor
+            api={api.emailMonitor}
+            authorizeDownload={api.objects.authorizeDownload}
+            controls={emailControls}
+          />
+        </div>
+      ) : (
+        <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[14rem_22rem_minmax(0,1fr)]">
+          <InboxPane
+            className={mobilePane === "inboxes" ? "flex" : "hidden md:flex"}
+            inboxes={inboxes ?? []}
+            selectedInboxId={selectedInboxId}
+            onSelect={(inboxId) => {
+              setSelectedInboxId(inboxId);
+              setSelectedThreadId(null);
+              setComposeTarget(null);
+              setMobilePane("threads");
+            }}
+          />
+          <ThreadPane
+            className={mobilePane === "threads" ? "flex" : "hidden md:flex"}
+            threads={threads ?? []}
+            selectedThreadId={selectedThreadId}
+            canLoadMore={threadStatus === "CanLoadMore" || threadStatus === "LoadingMore"}
+            isLoading={threadStatus === "LoadingFirstPage" || threadStatus === "LoadingMore"}
+            onBack={() => setMobilePane("inboxes")}
+            onLoadMore={() => loadMoreThreads(50)}
+            onSelect={openThread}
+          />
+          <section
+            className={`${mobilePane === "message" ? "flex" : "hidden md:flex"} min-h-0 flex-col bg-background`}
+          >
+            <div className="flex h-11 shrink-0 items-center border-b px-3 md:hidden">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobilePane("threads")}
+              >
+                <ArrowLeft aria-hidden="true" />
+                Threads
+              </Button>
+            </div>
+            {composeTarget && composeInbox ? (
+              <ComposePane
+                key={`${composeInbox._id}-${composeTarget.kind === "reply" ? composeTarget.threadId : "new"}`}
+                inboxId={composeInbox._id}
+                inboxAddress={composeInbox.address}
+                thread={composeTarget.kind === "reply" ? thread : null}
+                latestMessage={composeTarget.kind === "reply" ? messages[0] : undefined}
+                onCancel={() => setComposeTarget(null)}
+                onSent={() => setComposeTarget(null)}
+              />
+            ) : thread ? (
+              <MessagePane
+                thread={thread}
+                messages={messages}
+                canLoadMore={messageStatus === "CanLoadMore" || messageStatus === "LoadingMore"}
+                canReply={Boolean(messages[0]?.replyRecipient)}
+                isLoadingMore={messageStatus === "LoadingMore"}
+                onLoadMore={() => loadMoreMessages(10)}
+                onReply={() => setComposeTarget({ kind: "reply", threadId: thread._id })}
+              />
+            ) : (
+              <EmptyReadingPane hasInboxes={activeInboxes.length > 0} />
+            )}
+          </section>
+        </div>
+      )}
     </main>
   );
 }
@@ -374,21 +414,6 @@ function MessagePane({
   onReply: () => void;
 }) {
   const authorizeDownload = useAction(api.objects.authorizeDownload);
-  const [downloadError, setDownloadError] = useState("");
-
-  const download = async (
-    object:
-      | { kind: "raw"; messageId: MessageId }
-      | { kind: "attachment"; attachmentId: AttachmentId },
-  ) => {
-    setDownloadError("");
-    try {
-      const url = await authorizeDownload({ object });
-      window.location.assign(url);
-    } catch (error: unknown) {
-      setDownloadError(error instanceof Error ? error.message : "Could not download file");
-    }
-  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -416,64 +441,14 @@ function MessagePane({
           </div>
         ) : null}
         {messages.toReversed().map((message) => (
-          <article key={message._id} className="border-b px-5 py-5 last:border-b-0">
-            <header className="mb-4 flex items-start justify-between gap-4">
-              <div className="min-w-0 text-sm">
-                <p className="truncate font-medium">{message.from}</p>
-                <p className="truncate text-xs text-muted-foreground">to {message.to.join(", ")}</p>
-              </div>
-              <div className="shrink-0 text-right text-xs text-muted-foreground">
-                <time>{dateFormatter.format(message.occurredAt)}</time>
-                {message.direction === "outbound" ? (
-                  <p>{message.status.replaceAll("_", " ")}</p>
-                ) : null}
-              </div>
-            </header>
-            <div className="whitespace-pre-wrap break-words text-sm leading-6">
-              {message.bodyText || "No readable text body."}
-            </div>
-            {message.bodyTruncated ? (
-              <p className="mt-3 text-xs text-muted-foreground">The displayed body is truncated.</p>
-            ) : null}
-            {message.attachments.length > 0 || message.rawAvailable ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {message.attachments.map((attachment) => (
-                  <Button
-                    type="button"
-                    key={attachment._id}
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      void download({ kind: "attachment", attachmentId: attachment._id })
-                    }
-                  >
-                    <Paperclip aria-hidden="true" />
-                    {attachment.filename}
-                    <span className="text-muted-foreground">
-                      {Math.max(1, Math.round(attachment.byteSize / 1_024))} KB
-                    </span>
-                  </Button>
-                ))}
-                {message.rawAvailable ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void download({ kind: "raw", messageId: message._id })}
-                  >
-                    <Download aria-hidden="true" />
-                    Raw message
-                  </Button>
-                ) : null}
-              </div>
-            ) : null}
-          </article>
+          <div key={message._id} className="border-b px-5 py-5 last:border-b-0">
+            <EmailMessage
+              message={message}
+              onDownload={(object) => authorizeDownload({ object })}
+              controls={emailControls}
+            />
+          </div>
         ))}
-        {downloadError ? (
-          <p className="px-5 pb-4 text-sm text-destructive" role="alert">
-            {downloadError}
-          </p>
-        ) : null}
       </div>
     </div>
   );

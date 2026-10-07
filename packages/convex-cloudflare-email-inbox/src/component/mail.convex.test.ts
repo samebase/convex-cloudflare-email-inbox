@@ -3,7 +3,9 @@
 
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vite-plus/test";
+import type { HistoryStatus } from "../client/monitor";
 import { api } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
 import schema from "./schema";
 
 const modules = import.meta.glob([
@@ -66,6 +68,201 @@ describe("component history pagination", () => {
     });
     expect(nextPage.page).toHaveLength(1);
     expect(new Set([messages.page[0]._id, nextPage.page[0]._id]).size).toBe(2);
+  });
+
+  async function setupHistory() {
+    const t = convexTest(schema, modules);
+    const inboxIds = await t.mutation(api.bootstrap.ensureInboxes, {
+      domain: "example.com",
+      inboxes: [
+        { localPart: "notifications", label: "Notifications" },
+        { localPart: "support", label: "Support" },
+      ],
+    });
+    const transports = [
+      { kind: "outbound", clientRequestId: "queued", delivery: { kind: "queued", queuedAt: 1 } },
+      { kind: "outbound", clientRequestId: "sending", delivery: { kind: "sending", startedAt: 1 } },
+      {
+        kind: "outbound",
+        clientRequestId: "accepted",
+        delivery: {
+          kind: "accepted",
+          acceptedAt: 1,
+          recipientResults: {
+            delivered: [],
+            queued: [],
+            permanent_bounces: ["person@example.net"],
+          },
+        },
+      },
+      {
+        kind: "outbound",
+        clientRequestId: "rejected",
+        delivery: { kind: "rejected", failedAt: 1, code: "cloudflare_10102" },
+      },
+      {
+        kind: "outbound",
+        clientRequestId: "unknown",
+        delivery: { kind: "unknown", observedAt: 1 },
+      },
+      { kind: "inbound", rawR2Key: "received.eml", parse: { kind: "parsed" } },
+      { kind: "inbound", rawR2Key: "failed.eml", parse: { kind: "failed", code: "parse_failed" } },
+    ] satisfies Doc<"emailMessages">["transport"][];
+    await t.run(async (ctx) => {
+      for (const inboxId of inboxIds) {
+        const threadId = await ctx.db.insert("emailThreads", {
+          inboxId,
+          subject: "History",
+          snippet: "Summary",
+          lastFrom: "sender@example.com",
+          lastActivityAt: 10,
+          messageCount: transports.length,
+          unreadCount: 2,
+        });
+        await ctx.db.patch(inboxId, { unreadCount: 2 });
+        for (const [index, transport] of transports.entries()) {
+          const messageId = await ctx.db.insert("emailMessages", {
+            inboxId,
+            threadId,
+            envelopeFrom: "sender@example.com",
+            envelopeTo: "person@example.net",
+            headerFrom: "sender@example.com",
+            headerTo: ["person@example.net"],
+            headerCc: [],
+            references: [],
+            subject: `Message ${index}`,
+            snippet: "Summary",
+            occurredAt: Math.floor(index / 2),
+            transport,
+          });
+          await ctx.db.insert("emailBodies", {
+            messageId,
+            content: "Full body is only for the detail query",
+            originalByteCount: 42,
+            truncated: false,
+          });
+          await ctx.db.insert("emailAttachments", {
+            messageId,
+            ordinal: 0,
+            r2Key: "private-attachment-key",
+            originalFilename: "document.txt",
+            mimeType: "text/plain",
+            byteSize: 1,
+          });
+        }
+      }
+    });
+    return { t, inboxIds };
+  }
+
+  it("paginates metadata newest first across equal timestamps without changing unread counts", async () => {
+    const { t, inboxIds } = await setupHistory();
+    const first = await t.query(api.mail.listHistory, {
+      inboxId: null,
+      status: null,
+      paginationOpts: { numItems: 3, cursor: null },
+    });
+    expect(first.page).toHaveLength(3);
+    expect(first.isDone).toBe(false);
+    expect(first.page[0]).toEqual({
+      _id: expect.any(String),
+      inboxId: expect.any(String),
+      inboxAddress: expect.stringMatching(/^(notifications|support)@example.com$/),
+      threadId: expect.any(String),
+      direction: "inbound",
+      status: "parse_failed",
+      from: "sender@example.com",
+      to: ["person@example.net"],
+      cc: [],
+      bcc: [],
+      subject: "Message 6",
+      snippet: "Summary",
+      occurredAt: 3,
+    });
+    expect(
+      await t.query(api.mail.listHistory, {
+        inboxId: null,
+        status: null,
+        paginationOpts: { numItems: 3, cursor: null },
+      }),
+    ).toEqual(first);
+    const rows = [...first.page];
+    let result = first;
+    while (!result.isDone) {
+      result = await t.query(api.mail.listHistory, {
+        inboxId: null,
+        status: null,
+        paginationOpts: { numItems: 3, cursor: result.continueCursor },
+      });
+      rows.push(...result.page);
+    }
+    expect(rows).toHaveLength(14);
+    expect(new Set(rows.map((row) => row._id)).size).toBe(14);
+    expect(rows.map((row) => row.occurredAt)).toEqual(
+      rows.map((row) => row.occurredAt).toSorted((a, b) => b - a),
+    );
+    expect(new Set(rows.map((row) => row.inboxId))).toEqual(new Set(inboxIds));
+    const unread = await t.run(async (ctx) => ({
+      inboxes: (await ctx.db.query("inboxes").take(10)).map((row) => row.unreadCount),
+      threads: (await ctx.db.query("emailThreads").take(10)).map((row) => row.unreadCount),
+    }));
+    expect(unread).toEqual({ inboxes: [2, 2], threads: [2, 2] });
+  });
+
+  it("filters every stored status independently and within an inbox, preserving acceptance semantics", async () => {
+    const { t, inboxIds } = await setupHistory();
+    const statuses = [
+      "queued",
+      "sending",
+      "accepted",
+      "rejected",
+      "unknown",
+      "received",
+      "parse_failed",
+    ] satisfies HistoryStatus[];
+    for (const inboxId of [null, ...inboxIds]) {
+      const unfiltered = await t.query(api.mail.listHistory, {
+        inboxId,
+        status: null,
+        paginationOpts: { numItems: 20, cursor: null },
+      });
+      expect(unfiltered.page).toHaveLength(inboxId ? 7 : 14);
+      for (const status of statuses) {
+        const result = await t.query(api.mail.listHistory, {
+          inboxId,
+          status,
+          paginationOpts: { numItems: 20, cursor: null },
+        });
+        expect(result.isDone).toBe(true);
+        expect(result.page).toEqual(unfiltered.page.filter((row) => row.status === status));
+        if (inboxId) expect(result.page.map((row) => row.inboxId)).toEqual([inboxId]);
+      }
+    }
+    const accepted = await t.query(api.mail.listHistory, {
+      inboxId: null,
+      status: "accepted",
+      paginationOpts: { numItems: 1, cursor: null },
+    });
+    expect(accepted.page[0].status).toBe("accepted");
+  });
+
+  it("preserves split cursors for filtered history pages", async () => {
+    const { t } = await setupHistory();
+    const first = await t.query(api.mail.listHistory, {
+      inboxId: null,
+      status: "received",
+      paginationOpts: { numItems: 20, cursor: null, maximumRowsRead: 1 },
+    });
+    expect(first.page).toHaveLength(1);
+    expect(first.pageStatus).toBe("SplitRequired");
+    expect(first.splitCursor).toBeTypeOf("string");
+    const next = await t.query(api.mail.listHistory, {
+      inboxId: null,
+      status: "received",
+      paginationOpts: { numItems: 20, cursor: first.continueCursor },
+    });
+    expect(next.page).toHaveLength(1);
+    expect(next.page[0]._id).not.toBe(first.page[0]._id);
   });
 });
 

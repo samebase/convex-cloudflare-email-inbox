@@ -10,6 +10,7 @@ import type { ComponentApi } from "../component/_generated/component.js";
 import { normalizeMailAddress } from "../component/mailProtocol.js";
 
 import { replyOptions, sendOptions } from "../component/messageTypes.js";
+import type { ListHistoryArgs } from "./monitor.js";
 
 export { replyOptions, sendOptions };
 export type SendOptions = Infer<typeof sendOptions>;
@@ -117,6 +118,15 @@ export class EmailInbox {
 
   async listInboxes(ctx: QueryRunner) {
     return await ctx.runQuery(this.component.inboxes.list, {});
+  }
+
+  /** Read-only message summaries across inboxes. Status filters use stored transport state. */
+  async listHistory(ctx: QueryRunner, options: ListHistoryArgs) {
+    return await ctx.runQuery(this.component.mail.listHistory, {
+      inboxId: options.inboxId,
+      status: options.status,
+      paginationOpts: options.paginationOpts,
+    });
   }
 
   async listThreads(
