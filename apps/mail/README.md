@@ -39,8 +39,7 @@ pnpm run dev
 ```
 
 The development command builds and watches the package, then starts Convex and TanStack Start.
-Leave Cloudflare sending credentials unset locally to prevent real email. Use
-Cloudflare's local email-event endpoint when testing the Worker handler.
+Leave Cloudflare sending credentials unset locally to prevent real email.
 
 Mail's local environment files live in `apps/mail`, beside `convex.json` and `cloudflare.config.ts`.
 The following Convex environment variables configure the app:
@@ -50,17 +49,15 @@ The following Convex environment variables configure the app:
 | `OWNER_EMAIL`                 | The only email that can sign in                                |
 | `OWNER_SETUP_SECRET`          | The one-time code required for first sign-up                   |
 | `MAIL_BRIDGE_SECRET`          | Authenticates Worker and Convex requests and signs file grants |
-| `MAIL_WORKER_URL`             | Public URL of the deployed Worker                              |
+| `MAIL_WORKER_URL`             | Public URL of the inbox Worker                                 |
 | `CLOUDFLARE_EMAIL_API_TOKEN`  | Cloudflare Email Sending token, required to send               |
 | `CLOUDFLARE_EMAIL_ACCOUNT_ID` | Cloudflare account for the verified sending domain             |
 
-The Worker uses `MAIL_BRIDGE_SECRET` and `MAIL_RECOVERY_ADDRESS` as secrets. The recovery address
-must be a verified Cloudflare Email Routing destination. It only receives a copy when storage or
-the Convex handoff fails. The [setup stack](../../README.md#setup-stack) sets `MAIL_BRIDGE_SECRET` on the Worker and in
-Convex production, and `MAIL_WORKER_URL` in Convex production. The other variables and
-`MAIL_RECOVERY_ADDRESS` are set by hand. `cloudflare.config.ts` declares the two secrets, binds
-`MAIL_STORAGE` and `ASSETS`, and sets `CONVEX_SITE_URL` to the Convex site URL of the same build
-when the build writes the Worker. Sending runs in the Convex component, not the Worker.
+Mail is received, stored, and served by the inbox Worker that the [setup stack](../../README.md#setup-stack)
+uploads from the component, with its own R2 bucket. The stack sets `MAIL_BRIDGE_SECRET` on that
+Worker and in Convex production, and `MAIL_WORKER_URL` in Convex production. The other variables are
+set by hand. The app Worker in `cloudflare.config.ts` serves the built app only. Sending runs in the
+Convex component, not a Worker.
 
 To create the two initial inboxes in a deployment, run:
 
@@ -89,16 +86,13 @@ Cloudflare Workers Builds deploys `main` to production. The standard build scrip
 branch's Convex deployment and preserve existing auth keys. For provider setup, use the
 [Worker Previews migration guide](https://samebase.com/docs/cloudflare-previews-migration).
 
-Mail previews use the `samebase-mail-previews` R2 bucket. A Workers build on a branch other than
-`main` writes a Preview build with that bucket and the Convex site URL of the branch. The preview
-deploy command uploads it and sets `MAIL_WORKER_URL` in that Convex preview. Production mail
-storage and email routing stay unchanged.
+A Workers build on a branch other than `main` writes a Preview build of the app Worker. The preview
+deploy command uploads it and sets `SITE_URL` in the Convex preview of the branch. Previews receive
+no mail and have no file storage. Production mail storage and email routing stay unchanged.
 
 Set `OWNER_EMAIL`, `OWNER_SETUP_SECRET`, and `CLOUDFLARE_EMAIL_ACCOUNT_ID` as Convex project
-defaults for preview deployments. The preview Worker and the Convex preview need a matching test
-`MAIL_BRIDGE_SECRET`. Set it in the preview settings of the Worker and in the Convex preview
-defaults. Leave sending credentials unset in
-previews unless they use an isolated test account. Do not route the live inbox to a preview.
+defaults for preview deployments. Leave sending credentials unset in previews unless they use an
+isolated test account.
 
 ## Mail delivery rules
 

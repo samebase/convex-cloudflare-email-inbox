@@ -1,58 +1,66 @@
-// The setup around the component, as one Alchemy function: what a Worker
-// and a Convex deployment need so that the component receives, stores, and
-// serves mail. It sits next to the component to try the idea that a
-// component ships its own wiring.
+// The setup around the component, as one Alchemy function: the Worker that
+// receives, stores, and serves mail, its bucket, and what that Worker and a
+// Convex deployment must share. It sits next to the component to try the
+// idea that a component ships its own wiring.
 //
-// The function declares only values that two sides must share and that
-// nobody edits by hand: the bridge secret, the Worker URL, and the catch-all
-// rule. The storage buckets are bindings of the Worker, named in its
-// cloudflare.config.ts. The sending credentials the component reads
+// The Worker is the Alchemy Worker in ./worker/entry.ts, which the package
+// ships; Alchemy bundles it when it deploys. The app's own Worker stays
+// untouched. The sending credentials the component reads
 // (CLOUDFLARE_EMAIL_API_TOKEN and CLOUDFLARE_EMAIL_ACCOUNT_ID) are operator
 // settings and stay in the Convex dashboard.
-import * as WorkersBuilds from "@samebase/alchemy-cloudflare-workers-builds";
 import * as Convex from "@samebase/alchemy-convex";
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Namespace from "alchemy/Namespace";
 import * as Output from "alchemy/Output";
+import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import type * as Redacted from "effect/Redacted";
+import { inbox } from "./worker/entry.js";
 
 export interface EmailInboxProps {
-  /**
-   * The Worker that runs the handler from "./worker". It gets the secret
-   * MAIL_BRIDGE_SECRET. Its cloudflare.config.ts binds the storage bucket
-   * and the preview bucket as MAIL_STORAGE.
-   */
-  readonly worker: WorkersBuilds.Worker;
   /** The Convex deployment that runs the component, and a deploy key of it. */
   readonly deployment: Alchemy.Input<string>;
   readonly deployKey: Alchemy.Input<Redacted.Redacted<string>>;
+  /** The .convex.site URL of the deployment. The Worker posts inbound mail there. */
+  readonly convexSiteUrl: Alchemy.Input<string>;
   /** The zone that receives the mail, by name or id. Its catch-all rule sends every message to the Worker. */
   readonly zone: string;
 }
 
 /**
- * The setup of one inbox: the routing on Cloudflare, and the secret and the
- * URL that let the Worker and Convex trust each other. The resources go
- * under `id` in the stack state.
+ * Whether a destroy keeps the Worker and the bucket: yes, unless
+ * DESTROY_APP is set, the switch of the app stacks. Alchemy reads a removal
+ * policy from the state that the last deploy wrote.
+ */
+const keep = Effect.gen(function* () {
+  return !(yield* Config.Boolean("DESTROY_APP").pipe(Config.withDefault(false)));
+}).pipe(Effect.orDie);
+
+/**
+ * One inbox: the Worker with its bucket, the secret and the URL that let the
+ * Worker and Convex trust each other, and the routing of the zone's mail to
+ * the Worker. The resources go under `id` in the stack state.
  *
- * The catch-all rule is retained on destroy: a destroy removes it from state
- * and leaves the routing in place.
+ * The Worker enables Email Routing on the zone and points the zone's
+ * catch-all rule at itself (Cloudflare.email in ./worker/entry.ts).
  */
 export const EmailInbox = (id: string, props: EmailInboxProps) =>
   Namespace.push(
     id,
     Effect.gen(function* () {
-      const workerName = props.worker.name;
-
       // Alchemy makes the secret once and keeps it in state.
       const bridgeSecret = yield* Alchemy.Random("BridgeSecret");
-      yield* WorkersBuilds.Secret("WorkerBridgeSecret", {
-        worker: workerName,
-        name: "MAIL_BRIDGE_SECRET",
-        value: bridgeSecret.text,
-      });
+      // The one step the Alchemy docs do not cover: a Worker that a package ships, declared by
+      // the consumer's stack. It uses the documented separate-entry form of `main`.
+      const worker = yield* Cloudflare.Worker(
+        "Inbox",
+        {
+          main: new URL("./worker/entry.js", import.meta.url).href,
+          env: { CONVEX_SITE_URL: props.convexSiteUrl, MAIL_BRIDGE_SECRET: bridgeSecret.text },
+        },
+        inbox(Cloudflare.email({ zone: props.zone })),
+      ).pipe(Alchemy.RemovalPolicy.retain(keep));
       yield* Convex.EnvironmentVariable("ConvexBridgeSecret", {
         deployment: props.deployment,
         deployKey: props.deployKey,
@@ -62,7 +70,7 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
 
       // Convex calls the Worker at this URL to serve stored objects. The URL
       // is undefined when the account has no workers.dev subdomain yet.
-      const workerUrl = props.worker.url.pipe(
+      const workerUrl = worker.url.pipe(
         Output.mapEffect((url) =>
           url === undefined
             ? Effect.die(new Error("Set the workers.dev subdomain of the Cloudflare account."))
@@ -76,15 +84,6 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
         value: workerUrl,
       });
 
-      // Email Routing itself stays enabled from the dashboard: Alchemy's
-      // Routing resource calls the enable endpoint on every create, and
-      // Cloudflare does not document that call on a zone that is already
-      // enabled.
-      yield* Cloudflare.Email.CatchAll("CatchAll", {
-        zone: props.zone,
-        name: Output.interpolate`${workerName} catch-all`,
-        enabled: true,
-        actions: [{ type: "worker", value: [workerName] }],
-      }).pipe(Alchemy.RemovalPolicy.retain());
+      return { workerUrl: worker.url };
     }),
   );

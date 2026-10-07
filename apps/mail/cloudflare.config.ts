@@ -16,32 +16,8 @@ import { bindings, defineConfig, defineWorker } from "cf/config";
 // and get the default. A fork changes the default.
 const name = process.env["WRANGLER_CI_OVERRIDE_NAME"] ?? "samebase-mail";
 
-// The Worker bridge must call the Convex deployment of the same build.
-// `convex deploy --cmd` sets VITE_CONVEX_SITE_URL only for its command, so
-// build:app writes the Worker inside that command and the URL ends up in
-// Build Output. A Workers build without the URL fails here instead of
-// deploying a Worker that points nowhere. Local evaluations outside the
-// Convex deploy (cf workers types, deploy:dry-run, the setup stack) get the
-// local Convex site URL.
-function convexSiteUrl() {
-  const url = process.env["VITE_CONVEX_SITE_URL"];
-  if (url) return url;
-  if (process.env["WORKERS_CI"]) {
-    throw new Error("Write the Worker inside convex deploy --cmd: VITE_CONVEX_SITE_URL is unset.");
-  }
-  return "http://127.0.0.1:3211";
-}
-
-// The values that production and previews share. Previews get their own
-// storage bucket below, and no MAIL_RECOVERY_ADDRESS: the preview settings
-// of the Worker hold only MAIL_BRIDGE_SECRET, and cf refuses a version
-// whose declared secret the Worker does not have.
-const env = {
-  CONVEX_SITE_URL: bindings.text(convexSiteUrl()),
-  MAIL_BRIDGE_SECRET: bindings.secret(),
-  ASSETS: bindings.assets(),
-};
-
+// The app Worker serves the built app only. Mail goes to the inbox Worker
+// that the setup stack uploads from the component.
 export const worker = defineWorker({
   name,
   compatibilityDate: "2026-05-14",
@@ -49,24 +25,11 @@ export const worker = defineWorker({
   previewUrls: true,
   assets: {
     htmlHandling: "none",
-    // Signed downloads must reach the Worker even during browser navigation.
-    runWorkerFirst: ["/api/mail/object"],
     // Cloudflare SPA mode serves /index.html for unknown app routes. Keep
     // vite.config.ts emitting the TanStack Start shell there.
     notFoundHandling: "single-page-application",
   },
-  env: {
-    ...env,
-    // The bucket names follow the Worker name: <worker> for production mail
-    // and <worker>-previews for previews. This install's Worker is
-    // samebase-mail, so its buckets keep the names they had before.
-    MAIL_STORAGE: bindings.r2({ name }),
-    MAIL_RECOVERY_ADDRESS: bindings.secret(),
-  },
+  env: { ASSETS: bindings.assets() },
 });
 
-export default defineConfig(({ isPreview }) => ({
-  worker: isPreview
-    ? { ...worker, env: { ...env, MAIL_STORAGE: bindings.r2({ name: `${name}-previews` }) } }
-    : worker,
-}));
+export default defineConfig({ worker });

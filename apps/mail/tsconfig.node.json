@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.node.json",
-  "include": ["scripts/**/*.ts", "cloudflare.config.ts", "vite.config.ts", "wrangler.config.ts"]
+  "include": [
+    "alchemy.run.ts",
+    "scripts/**/*.ts",
+    "cloudflare.config.ts",
+    "vite.config.ts",
+    "wrangler.config.ts"
+  ]
 }

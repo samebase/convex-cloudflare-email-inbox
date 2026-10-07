@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const packageRoot = fileURLToPath(
   new URL("../packages/convex-cloudflare-email-inbox", import.meta.url),
@@ -46,4 +46,42 @@ assert.match(css, /var\(--sb-email-border,/);
 assert.doesNotMatch(css, /@apply|@import|@theme|@property|:root|:host|\*\s*[,{]/);
 run(["exec", "--", "tsc", "-p", "tsconfig.json"], consumerRoot);
 run(["exec", "--", "vitest", "run", "consumer.test.ts"], consumerRoot);
+
+// EmailInbox points Alchemy at dist/worker/entry.js, and Alchemy bundles it
+// in the consumer's deploy. The entry must load with the runtime that a stack
+// installs, at the versions of the Mail stack in apps/mail: alchemy, effect,
+// and @effect/platform-node. The packed tarballs go in again, because an install
+// without them would remove them.
+const workspaceVersion = (name: string) =>
+  JSON.parse(
+    readFileSync(
+      new URL(`../apps/mail/node_modules/${name}/package.json`, import.meta.url),
+      "utf8",
+    ),
+  ).version;
+run(
+  [
+    "install",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund",
+    "--no-save",
+    ...tarballs.map((filename) => join(tarballRoot, filename)),
+    ...["alchemy", "effect", "@effect/platform-node"].map(
+      (name) => `${name}@${workspaceVersion(name)}`,
+    ),
+  ],
+  consumerRoot,
+);
+const entry = await import(
+  pathToFileURL(
+    join(
+      dirname(require.resolve("@samebase/convex-cloudflare-email-inbox/alchemy")),
+      "worker",
+      "entry.js",
+    ),
+  ).href
+);
+assert.equal(typeof entry.inbox, "function");
+assert.equal(typeof entry.default.pipe, "function");
 console.log(`Packed consumer passed. Artifacts retained at ${temporaryRoot}`);

@@ -6,9 +6,8 @@ runtime. Sending without attachments does not require a Worker or R2 bucket. Rec
 complete raw email and named attachments in your R2 bucket, with inbox data in your Convex deployment.
 
 There are three imports. `convex.config.js` is the Convex component. `./alchemy` is an Alchemy
-function that sets the bridge secret, `MAIL_WORKER_URL`, and the catch-all rule for a Worker and a
-Convex deployment; it needs `alchemy`, `effect`, `@samebase/alchemy-convex`, and
-`@samebase/alchemy-cloudflare-workers-builds`. The optional React monitor is the
+function that sets up receiving; it needs `alchemy`, `effect`, `@effect/platform-node`, and
+`@samebase/alchemy-convex`. The optional React monitor is the
 `@samebase/convex-cloudflare-email-inbox-ui` package.
 
 ```ts
@@ -16,6 +15,15 @@ import mail from "@samebase/convex-cloudflare-email-inbox/convex.config.js";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import { EmailMonitor } from "@samebase/convex-cloudflare-email-inbox-ui";
 ```
+
+Inside a stack, `yield* EmailInbox("Mail", { deployment, deployKey, convexSiteUrl, zone })` deploys
+the Worker in `src/worker/entry.ts`, an Alchemy Worker on the Effect runtime that Alchemy bundles at
+deploy time, with a new R2 bucket. Alchemy generates both names. It sets the bridge secret on the
+Worker and in Convex, and `MAIL_WORKER_URL` in Convex. The Worker enables Email Routing on the zone
+and points the zone's catch-all rule at itself, so the API token needs Email Routing Rules and DNS
+edit permissions (enabling writes the zone's MX and SPF records). `convexSiteUrl` is the
+deployment's `.convex.site` URL. A destroy keeps the Worker and the bucket unless `DESTROY_APP` is
+`true`.
 
 ## Install
 
@@ -275,8 +283,8 @@ handler. `createInbox` creates the local mailbox, not DNS records or a Cloudflar
 Raw `.eml` files and named MIME attachments remain in R2. Parsed text and mailbox metadata live in
 Convex. Unknown inboxes are rejected. Repeated raw messages are deduplicated within the recipient's
 inbox. A parse failure retains the raw message. Partial R2 writes can leave objects without a completed
-message; replaying the same raw mail resumes its reservation. Mail additionally supports forwarding
-to a verified recovery address. Provisioning, recovery policy, and orphan cleanup belong to the app.
+message; replaying the same raw mail resumes its reservation. The Worker that `./alchemy` uploads
+rejects a message that it cannot store. Recovery policy and orphan cleanup belong to the app.
 
 ## Tests
 

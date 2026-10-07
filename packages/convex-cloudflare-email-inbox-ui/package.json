@@ -53,7 +53,7 @@
     "typescript": "~6.0.2"
   },
   "peerDependencies": {
-    "@samebase/convex-cloudflare-email-inbox": "^0.2.0",
+    "@samebase/convex-cloudflare-email-inbox": "^0.2.0 || ^0.3.0",
     "convex": "^1.45.0",
     "react": "^19.0.0"
   }
