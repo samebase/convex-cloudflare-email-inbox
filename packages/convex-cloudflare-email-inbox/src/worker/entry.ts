@@ -1,85 +1,104 @@
-// The inbox Worker as an Alchemy Worker on the Effect runtime. EmailInbox
-// from "../alchemy.ts" declares it with `inboxWorker`; Alchemy bundles this
-// file when it deploys, and the Worker runs the default export below. Email
-// events go to receiveEmail, and GET /api/mail/object goes to downloadObject.
-import type * as Alchemy from "alchemy";
+// The inbox Worker as an Alchemy Worker on the Effect runtime. Email events
+// go to receiveEmail, and GET /api/mail/object goes to downloadObject.
 import * as Cloudflare from "alchemy/Cloudflare";
-import type * as Output from "alchemy/Output";
-import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import * as Redacted from "effect/Redacted";
+import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
+import * as Etag from "effect/http/Etag";
+import * as HttpPlatform from "effect/http/HttpPlatform";
 import * as HttpRouter from "effect/http/HttpRouter";
-import * as HttpServerError from "effect/http/HttpServerError";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
+import * as HttpApi from "effect/http-api/HttpApi";
+import * as HttpApiBuilder from "effect/http-api/HttpApiBuilder";
+import * as HttpApiEndpoint from "effect/http-api/HttpApiEndpoint";
+import * as HttpApiGroup from "effect/http-api/HttpApiGroup";
 import { downloadObject, receiveEmail } from "./index.js";
 
-/** The query of an object download: a grant from createObjectGrant, two base64url parts. */
-const ObjectDownload = Schema.Struct({
-  grant: Schema.String.check(Schema.isPattern(/^[\w-]+\.[\w-]+$/)),
+/** The bucket that keeps the raw messages and their attachments. */
+export const Storage = Cloudflare.R2.Bucket("Storage");
+
+/** A download names its object with a grant from createObjectGrant: two base64url parts. */
+class Objects extends HttpApiGroup.make("Objects").add(
+  HttpApiEndpoint.get("download", "/api/mail/object", {
+    query: Schema.Struct({ grant: Schema.String.check(Schema.isPattern(/^[\w-]+\.[\w-]+$/)) }),
+  }),
+) {}
+
+class InboxApi extends HttpApi.make("InboxApi").add(Objects) {}
+
+/**
+ * The Worker never serves files or compresses responses, so HttpPlatform is
+ * stubbed, as in Alchemy's state-store Worker (effect 4.0.0 also requires
+ * `platform` and `compression`).
+ */
+const HttpPlatformStub = Layer.succeed(HttpPlatform.HttpPlatform, {
+  platform: "web",
+  compression: {
+    algorithms: new Set<HttpPlatform.CompressionAlgorithm>(),
+    compressResponse: (response) => Effect.succeed(response),
+  },
+  fileResponse: () => Effect.die("HttpPlatform.fileResponse not supported"),
+  fileWebResponse: () => Effect.die("HttpPlatform.fileWebResponse not supported"),
+});
+
+/** The values that the stack sets with the Worker's `env`. */
+const Settings = Schema.Struct({
+  CONVEX_SITE_URL: Schema.String,
+  MAIL_BRIDGE_SECRET: Schema.String,
 });
 
 /**
- * The program of the inbox Worker. `storage` is the bucket that keeps the
- * mail. `routing` is the deploy-time routing of the zone's mail to this
- * Worker, which the deployed Worker ignores.
+ * The program of the inbox Worker. `email` is the email event source:
+ * `Cloudflare.email({ zone })` also routes the zone's mail to the Worker,
+ * `Cloudflare.email()` leaves the routing to you.
  */
-const inbox = (
-  storage: Cloudflare.R2.Bucket | Effect.Effect<Cloudflare.R2.Bucket, never, Cloudflare.Providers>,
-  routing: Cloudflare.EmailSubscribeProps,
-) =>
+export const inbox = (email: ReturnType<typeof Cloudflare.email>) =>
   Effect.gen(function* () {
-    const bucket = yield* Cloudflare.R2.ReadWriteBucket(storage);
-    // The stack sets CONVEX_SITE_URL and MAIL_BRIDGE_SECRET on the Worker.
-    // Config reads them from the Worker's environment when a handler runs;
-    // a Worker without them is misconfigured, so a missing value is a defect.
-    const environment = Effect.gen(function* () {
-      return {
-        CONVEX_SITE_URL: yield* Config.String("CONVEX_SITE_URL"),
-        MAIL_BRIDGE_SECRET: Redacted.value(yield* Config.Redacted("MAIL_BRIDGE_SECRET")),
-        MAIL_STORAGE: yield* bucket.raw,
-      };
-    }).pipe(Effect.orDie);
+    const bucket = yield* Cloudflare.R2.ReadWriteBucket(Storage);
+    // The environment is filled when a handler runs, so the handlers read it.
+    // A Worker without the settings is misconfigured: a defect.
+    const env = yield* Cloudflare.Workers.WorkerEnvironment;
+    const settings = Effect.all({
+      settings: Schema.decodeUnknownEffect(Settings)(env),
+      MAIL_STORAGE: bucket.raw,
+    }).pipe(
+      Effect.map(({ settings, MAIL_STORAGE }) => ({ ...settings, MAIL_STORAGE })),
+      Effect.orDie,
+    );
 
-    yield* Cloudflare.email(routing).subscribe((message) =>
-      environment.pipe(
-        Effect.flatMap((env) =>
-          // @ts-expect-error workerd passes web streams and an R2 binding; only the declarations of
-          // @cloudflare/workers-types and the DOM library differ (the stream read result, R2 get overloads).
-          Effect.tryPromise(() => receiveEmail(message.raw, env)),
+    yield* email.subscribe((message) =>
+      settings.pipe(
+        Effect.flatMap((settings) =>
+          // @ts-expect-error message.raw and bucket.raw are workerd's own email message and R2 binding,
+          // typed by @cloudflare/workers-types; receiveEmail declares them with the DOM library's
+          // ReadableStream, whose read result types differ. The runtime objects are the same.
+          Effect.tryPromise(() => receiveEmail(message.raw, settings)),
         ),
         Effect.catch(() => message.setReject("Mail storage is temporarily unavailable")),
       ),
     );
 
-    // The router answers 400 for a missing or malformed grant and 404 for
-    // any other route.
-    const download = HttpRouter.add(
-      "GET",
-      "/api/mail/object",
-      Effect.gen(function* () {
-        yield* HttpRouter.schemaParams(ObjectDownload);
-        const request = yield* HttpServerRequest.toWeb(yield* HttpServerRequest.HttpServerRequest);
-        const env = yield* environment;
-        return HttpServerResponse.fromWeb(
-          // @ts-expect-error workerd passes an R2 binding; only the declarations of
-          // @cloudflare/workers-types and the DOM library differ (the R2 get overloads and body stream).
-          yield* Effect.promise(() => downloadObject(request, env)),
-        );
-      }),
+    const objects = HttpApiBuilder.group(InboxApi, "Objects", (handlers) =>
+      handlers.handle("download", ({ request }) =>
+        Effect.gen(function* () {
+          const webRequest = yield* HttpServerRequest.toWeb(request);
+          const current = yield* settings;
+          // @ts-expect-error bucket.raw is workerd's R2 binding, typed by @cloudflare/workers-types;
+          // downloadObject declares its get result with the DOM library's ReadableStream, whose
+          // read result types differ. The runtime object is the same.
+          const response = yield* Effect.promise(() => downloadObject(webRequest, current));
+          return HttpServerResponse.fromWeb(response);
+        }).pipe(Effect.orDie),
+      ),
     );
 
-    // The fetch handler of an Alchemy Worker may fail only with HttpServerError
-    // or HttpBodyError. causeResponse, effect's failure boundary, turns the
-    // router's other failures into their responses: the schema error into 400
-    // and RouteNotFound into 404.
-    const fetch = yield* HttpRouter.toHttpEffect(download);
     return {
-      fetch: fetch.pipe(
-        Effect.catchCause((cause) =>
-          HttpServerError.causeResponse(cause).pipe(Effect.map(([response]) => response)),
+      fetch: yield* HttpRouter.toHttpEffect(
+        HttpApiBuilder.layer(InboxApi).pipe(
+          Layer.provide(objects),
+          Layer.provide([Etag.layer, HttpPlatformStub, Path.layer]),
         ),
       ),
     };
@@ -89,37 +108,4 @@ const inbox = (
     ),
   );
 
-/**
- * The inbox Worker and its bucket, both named `name`. `env` holds the values
- * that the Worker shares with Convex. The deploy enables Email Routing on
- * `zone` and points the zone's catch-all rule at the Worker.
- */
-export const inboxWorker = (props: {
-  readonly name: string | Output.Output<string>;
-  readonly env: {
-    readonly CONVEX_SITE_URL: Alchemy.Input<string>;
-    readonly MAIL_BRIDGE_SECRET: Alchemy.Input<Redacted.Redacted<string>>;
-  };
-  readonly zone: string;
-}) =>
-  Cloudflare.Worker(
-    "Worker",
-    {
-      main: import.meta.url,
-      name: props.name,
-      env: props.env,
-      // Pins the runtime semantics this Worker was written against; bump it deliberately.
-      compatibility: { date: "2026-10-08" },
-    },
-    inbox(Cloudflare.R2.Bucket("Storage", { name: props.name }), { zone: props.zone }),
-  );
-
-// Alchemy's generated Worker entry imports the default export of `main` to
-// find the program (makeEffectVirtualEntry in alchemy's
-// Cloudflare/Workers/Sources/Rolldown.ts). The deployed Worker reads its
-// bindings from its environment, so these props are placeholders.
-export default inboxWorker({
-  name: "mail",
-  env: { CONVEX_SITE_URL: "", MAIL_BRIDGE_SECRET: Redacted.make("") },
-  zone: "",
-});
+export default Cloudflare.Worker("Inbox", { main: import.meta.url }, inbox(Cloudflare.email()));

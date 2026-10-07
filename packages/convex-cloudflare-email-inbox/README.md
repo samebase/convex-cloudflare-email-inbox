@@ -18,7 +18,7 @@ import { EmailMonitor } from "@samebase/convex-cloudflare-email-inbox-ui";
 
 Inside a stack, `yield* EmailInbox("Mail", { deployment, deployKey, convexSiteUrl, zone })` deploys
 the Worker in `src/worker/entry.ts`, an Alchemy Worker on the Effect runtime that Alchemy bundles at
-deploy time, with a new R2 bucket, both named `mail-<deployment>`. It sets the bridge secret on the
+deploy time, with a new R2 bucket. Alchemy generates both names. It sets the bridge secret on the
 Worker and in Convex, and `MAIL_WORKER_URL` in Convex. The Worker enables Email Routing on the zone
 and points the zone's catch-all rule at itself, so the API token needs Email Routing Rules and DNS
 edit permissions (enabling writes the zone's MX and SPF records). `convexSiteUrl` is the

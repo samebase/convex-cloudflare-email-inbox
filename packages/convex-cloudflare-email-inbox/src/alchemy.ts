@@ -5,39 +5,28 @@
 //
 // The Worker is the Alchemy Worker in ./worker/entry.ts, which the package
 // ships; Alchemy bundles it when it deploys. The app's own Worker stays
-// untouched. The sending
-// credentials the component reads (CLOUDFLARE_EMAIL_API_TOKEN and
-// CLOUDFLARE_EMAIL_ACCOUNT_ID) are operator settings and stay in the Convex
-// dashboard.
+// untouched. The sending credentials the component reads
+// (CLOUDFLARE_EMAIL_API_TOKEN and CLOUDFLARE_EMAIL_ACCOUNT_ID) are operator
+// settings and stay in the Convex dashboard.
 import * as Convex from "@samebase/alchemy-convex";
 import * as Alchemy from "alchemy";
+import * as Cloudflare from "alchemy/Cloudflare";
 import * as Namespace from "alchemy/Namespace";
 import * as Output from "alchemy/Output";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import type * as Redacted from "effect/Redacted";
-import { inboxWorker } from "./worker/entry.js";
+import { inbox } from "./worker/entry.js";
 
 export interface EmailInboxProps {
-  /**
-   * The Convex deployment that runs the component, and a deploy key of it.
-   * The deployment name also names the Worker and the bucket, so it is a
-   * value or an Output, which the function can map.
-   */
-  readonly deployment: string | Output.Output<string>;
+  /** The Convex deployment that runs the component, and a deploy key of it. */
+  readonly deployment: Alchemy.Input<string>;
   readonly deployKey: Alchemy.Input<Redacted.Redacted<string>>;
   /** The .convex.site URL of the deployment. The Worker posts inbound mail there. */
   readonly convexSiteUrl: Alchemy.Input<string>;
   /** The zone that receives the mail, by name or id. Its catch-all rule sends every message to the Worker. */
   readonly zone: string;
 }
-
-/**
- * The name of the Worker and of its bucket. One Convex deployment has one
- * inbox, so the name is unique per app and readable in the dashboard. 54
- * characters is the limit Alchemy sets on the Worker names it makes.
- */
-export const inboxName = (deployment: string) => `mail-${deployment.toLowerCase()}`.slice(0, 54);
 
 /**
  * Whether a destroy keeps the Worker and the bucket: yes, unless
@@ -62,12 +51,16 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
     Effect.gen(function* () {
       // Alchemy makes the secret once and keeps it in state.
       const bridgeSecret = yield* Alchemy.Random("BridgeSecret");
-      const name = Output.asOutput(props.deployment).pipe(Output.map(inboxName));
-      const worker = yield* inboxWorker({
-        name,
-        env: { CONVEX_SITE_URL: props.convexSiteUrl, MAIL_BRIDGE_SECRET: bridgeSecret.text },
-        zone: props.zone,
-      }).pipe(Alchemy.RemovalPolicy.retain(keep));
+      // The one step the Alchemy docs do not cover: a Worker that a package ships, declared by
+      // the consumer's stack. It uses the documented separate-entry form of `main`.
+      const worker = yield* Cloudflare.Worker(
+        "Inbox",
+        {
+          main: new URL("./worker/entry.js", import.meta.url).href,
+          env: { CONVEX_SITE_URL: props.convexSiteUrl, MAIL_BRIDGE_SECRET: bridgeSecret.text },
+        },
+        inbox(Cloudflare.email({ zone: props.zone })),
+      ).pipe(Alchemy.RemovalPolicy.retain(keep));
       yield* Convex.EnvironmentVariable("ConvexBridgeSecret", {
         deployment: props.deployment,
         deployKey: props.deployKey,
@@ -91,6 +84,6 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
         value: workerUrl,
       });
 
-      return { bucketName: name, workerUrl: worker.url };
+      return { workerUrl: worker.url };
     }),
   );

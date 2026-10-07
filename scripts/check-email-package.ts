@@ -49,12 +49,16 @@ run(["exec", "--", "vitest", "run", "consumer.test.ts"], consumerRoot);
 
 // EmailInbox points Alchemy at dist/worker/entry.js, and Alchemy bundles it
 // in the consumer's deploy. The entry must load with the runtime that a stack
-// installs, at the versions of this workspace: alchemy, effect, and
-// @effect/platform-node. The packed tarballs go in again, because an install
+// installs, at the versions of the Mail stack in apps/mail: alchemy, effect,
+// and @effect/platform-node. The packed tarballs go in again, because an install
 // without them would remove them.
 const workspaceVersion = (name: string) =>
-  JSON.parse(readFileSync(new URL(`../node_modules/${name}/package.json`, import.meta.url), "utf8"))
-    .version;
+  JSON.parse(
+    readFileSync(
+      new URL(`../apps/mail/node_modules/${name}/package.json`, import.meta.url),
+      "utf8",
+    ),
+  ).version;
 run(
   [
     "install",
@@ -78,6 +82,6 @@ const entry = await import(
     ),
   ).href
 );
-assert.equal(typeof entry.inboxWorker, "function");
+assert.equal(typeof entry.inbox, "function");
 assert.equal(typeof entry.default.pipe, "function");
 console.log(`Packed consumer passed. Artifacts retained at ${temporaryRoot}`);
