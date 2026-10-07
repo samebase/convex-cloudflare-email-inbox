@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const packageRoot = fileURLToPath(
   new URL("../packages/convex-cloudflare-email-inbox", import.meta.url),
@@ -44,6 +44,22 @@ const css = readFileSync(
 assert.match(css, /@layer components/);
 assert.match(css, /var\(--sb-email-border,/);
 assert.doesNotMatch(css, /@apply|@import|@theme|@property|:root|:host|\*\s*[,{]/);
+// EmailInbox uploads this file as the owned Worker. It must load with no
+// other module and export both handlers.
+const workerBundle = await import(
+  pathToFileURL(
+    join(
+      dirname(require.resolve("@samebase/convex-cloudflare-email-inbox/alchemy")),
+      "worker.bundle.js",
+    ),
+  ).href
+);
+assert.equal(typeof workerBundle.default.email, "function");
+assert.equal(typeof workerBundle.default.fetch, "function");
+assert.equal(
+  (await workerBundle.default.fetch(new Request("https://worker.example/"), {})).status,
+  404,
+);
 run(["exec", "--", "tsc", "-p", "tsconfig.json"], consumerRoot);
 run(["exec", "--", "vitest", "run", "consumer.test.ts"], consumerRoot);
 console.log(`Packed consumer passed. Artifacts retained at ${temporaryRoot}`);
