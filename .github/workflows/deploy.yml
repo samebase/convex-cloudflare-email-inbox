@@ -52,14 +52,8 @@ jobs:
         run: pnpm run check
 
       - name: Check that this commit is the head of main
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          head=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
-          if [ "$head" != "$GITHUB_SHA" ]; then
-            echo "::error::$GITHUB_SHA is stale: main now points to $head. Convex was not deployed."
-            exit 1
-          fi
+        working-directory: apps/mail
+        run: node ./scripts/verify-current-branch-head.ts main "$GITHUB_SHA"
 
       - name: Deploy
         working-directory: apps/mail
@@ -112,18 +106,12 @@ jobs:
         run: pnpm run component:build
 
       # On pull_request, GITHUB_SHA is a merge commit, so this compares the
-      # head commit of the pull request.
+      # head commit of the pull request with its branch.
       - name: Check that this commit is the head of the pull request
+        working-directory: apps/mail
         env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          head=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .head.sha)
-          if [ "$head" != "$HEAD_SHA" ]; then
-            echo "::error::$HEAD_SHA is stale: the pull request now points to $head. Convex was not deployed."
-            exit 1
-          fi
+        run: node ./scripts/verify-current-branch-head.ts "$GITHUB_HEAD_REF" "$HEAD_SHA"
 
       # The preview deployment is named after the branch; a second push reuses
       # it. The deploy writes url=<site URL> to $GITHUB_OUTPUT.
@@ -141,18 +129,11 @@ jobs:
         run: node ./scripts/ensure-convex-auth.ts --preview-name "$GITHUB_HEAD_REF"
 
       # One comment per pull request: the first deploy posts it, later deploys
-      # edit it.
+      # edit it. No other workflow of this repository comments.
       - name: Post the preview URL
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
           URL: ${{ steps.deploy.outputs.url }}
         run: |
-          prefix="Preview of Mail:"
-          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate --jq \
-            ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$prefix\"))) | .id" | head -n 1)
-          if [ -n "$id" ]; then
-            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$prefix $URL" > /dev/null
-          else
-            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$prefix $URL"
-          fi
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body "Preview of Mail: $URL"
