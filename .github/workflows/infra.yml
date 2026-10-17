@@ -1,9 +1,9 @@
-# Runs the setup stack in apps/mail/alchemy.run.ts, from apps/mail. Workers
-# Builds keeps deploying the app code on every push; this workflow applies
-# the setup around it: the Worker shell, the Builds link, the Convex project
-# and keys, and the inbox:
-# its Worker (the component's Alchemy Worker, which Alchemy bundles here),
-# its bucket, the bridge secret, the Worker URL, and the routing.
+# Runs the setup stack in apps/mail/alchemy.run.ts, from apps/mail.
+# .github/workflows/deploy.yml deploys the app code on every push; this
+# workflow applies the setup around it: the Convex project and its production
+# deploy key, and the inbox: its Worker (the component's Alchemy Worker, which
+# Alchemy bundles here), its bucket, the bridge secret, the Worker URL, and the
+# routing.
 #
 # Pull request: a plan, read-only, as a check. Push to main: a deploy. Both
 # compare against the live providers (--detect-drift), so a deleted key or a
@@ -15,7 +15,6 @@ on:
   pull_request:
     paths:
       - apps/mail/alchemy.run.ts
-      - apps/mail/cloudflare.config.ts
       - apps/mail/package.json
       - packages/convex-cloudflare-email-inbox/src/**
       - packages/convex-cloudflare-email-inbox/scripts/build.ts
@@ -26,7 +25,6 @@ on:
     branches: [main]
     paths:
       - apps/mail/alchemy.run.ts
-      - apps/mail/cloudflare.config.ts
       - apps/mail/package.json
       - packages/convex-cloudflare-email-inbox/src/**
       - packages/convex-cloudflare-email-inbox/scripts/build.ts
