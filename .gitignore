@@ -17,8 +17,6 @@ dist-ssr
 .convex
 .playwright-cli
 apps/mail/convex/.tmp
-# cf Build Output and generated Worker types
-.cloudflare
 
 # Editor directories and files
 .vscode/*
