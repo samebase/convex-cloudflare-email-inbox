@@ -15,8 +15,8 @@
 // pull request that touches this file, a deploy on main. Run it from
 // apps/mail. Locally it needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID
 // in apps/mail/.env (a user token with
-// Workers Scripts, Workers Builds Configuration, Workers R2 Storage, Secrets
-// Store, Email Routing rules, Zone read, DNS) and the Convex CLI login:
+// Workers Scripts, Workers R2 Storage, Secrets Store, Email Routing rules,
+// Zone read, DNS) and the Convex CLI login:
 //   npx alchemy plan --stage prod
 //
 // A fork changes the three values below.
@@ -43,7 +43,8 @@ export default Alchemy.Stack(
       // No resource below uses it. The state still has the rows of the app
       // Worker and its Workers Builds link from before convex-hosting, and
       // Alchemy needs the provider of a row to remove it: the deploy deletes
-      // the Builds link and drops the retained Worker from state. Remove the
+      // the Builds link and drops the retained Worker from state, with the
+      // Workers Builds Configuration permission on the token. Remove the
       // provider and its package once that deploy has run on main.
       WorkersBuilds.providers(),
       Convex.providers(),

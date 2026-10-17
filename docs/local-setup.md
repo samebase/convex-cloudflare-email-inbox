@@ -1,7 +1,7 @@
 # Local setup
 
 Use this when you want to run the app from your own computer instead of only
-through Cloudflare.
+through its deployments.
 
 ## Install Vite+
 
@@ -41,8 +41,20 @@ local backend.
 
 Open the local URL printed by Vite.
 
-Mail's frontend, Convex wrappers, Worker, and app scripts live in `apps/mail`. Put local `.env.local`
-and `.dev.vars` files there. The component lives in `packages/convex-cloudflare-email-inbox`, and the
+On a fresh checkout or worktree, the first push fails with
+`Could not resolve "../.convex-hosting/version.js"`, and the frontend does not start.
+`convex/http.ts` imports that file, and only a deploy writes it. Keep `pnpm run dev` running and run
+this once in a second terminal:
+
+```sh
+pnpm --filter samebase-mail run deploy:dev
+```
+
+It builds the app, uploads it to the development deployment, writes the file, and pushes. The first
+terminal then continues and starts the frontend.
+
+Mail's frontend, Convex wrappers, and app scripts live in `apps/mail`. Put the local `.env.local`
+file there. The component lives in `packages/convex-cloudflare-email-inbox`, and the
 root development command watches it while the app runs.
 
 Run app-specific Convex commands from the repository root with the workspace filter:

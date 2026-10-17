@@ -9,7 +9,8 @@ The app has no AI agent, MCP server, template system, or public account flow.
 
 ## Architecture
 
-- One Cloudflare Worker receives routed email, parses MIME, serves the web app, and streams downloads.
+- The inbox Worker on Cloudflare receives routed email, parses MIME, and streams downloads.
+- The Convex deployment serves the web app through `@samebase/convex-hosting`.
 - One private R2 bucket stores complete `.eml` files and named attachments.
 - The component in `packages/convex-cloudflare-email-inbox` stores inbox rules, ingress receipts, threads,
   message metadata, readable bodies, and outbound delivery state. It sends through Cloudflare REST.
@@ -41,7 +42,12 @@ pnpm run dev
 The development command builds and watches the package, then starts Convex and TanStack Start.
 Leave Cloudflare sending credentials unset locally to prevent real email.
 
-Mail's local environment files live in `apps/mail`, beside `convex.json` and `cloudflare.config.ts`.
+On a fresh checkout or worktree, the first push fails with
+`Could not resolve "../.convex-hosting/version.js"`, and the frontend waits. Run
+`pnpm --filter samebase-mail run deploy:dev` once in a second terminal. It builds the app, uploads
+it to the development deployment, writes that file, and pushes. The first terminal then continues.
+
+Mail's local environment files live in `apps/mail`, beside `convex.json`.
 The following Convex environment variables configure the app:
 
 | Name                          | Purpose                                                        |
@@ -56,8 +62,7 @@ The following Convex environment variables configure the app:
 Mail is received, stored, and served by the inbox Worker that the [setup stack](../../README.md#setup-stack)
 uploads from the component, with its own R2 bucket. The stack sets `MAIL_BRIDGE_SECRET` on that
 Worker and in Convex production, and `MAIL_WORKER_URL` in Convex production. The other variables are
-set by hand. The app Worker in `cloudflare.config.ts` serves the built app only. Sending runs in the
-Convex component, not a Worker.
+set by hand. Sending runs in the Convex component, not a Worker.
 
 To create the two initial inboxes in a deployment, run:
 
@@ -69,26 +74,31 @@ Add `--prod` for production.
 
 ## Checks and deploys
 
-| Command                   | Purpose                                               |
-| ------------------------- | ----------------------------------------------------- |
-| `pnpm run check`          | Format, lint, type-check, and test the app            |
-| `pnpm run build`          | Run the complete Cloudflare build path                |
-| `pnpm run deploy:dry-run` | Build and validate a Worker upload without publishing |
-| `pnpm run deploy`         | Deploy the production Worker after the Workers build  |
+Run these in `apps/mail`:
 
-`cloudflare.config.ts` is the configuration of the Worker. The build writes its Build Output to
-`.cloudflare/output/v0/` with the Wrangler bundler (`scripts/build-worker.ts`), and the deploy
-commands upload that output with `cf deploy --prebuilt` or `cf previews deploy --prebuilt`.
-`wrangler.config.ts` holds the build settings of the Wrangler bundler. `cf workers types` writes
-the `Env` type of the Worker to `.cloudflare/types/index.d.ts`.
+| Command               | Purpose                                                      |
+| --------------------- | ------------------------------------------------------------ |
+| `pnpm run check`      | Format, lint, type-check, and test the app                   |
+| `pnpm run build`      | Build the app into `dist/client`                             |
+| `pnpm run deploy`     | Build the app and deploy it with the functions to production |
+| `pnpm run deploy:dev` | The same, to the development deployment of this checkout     |
 
-Cloudflare Workers Builds deploys `main` to production. The standard build scripts select the
-branch's Convex deployment and preserve existing auth keys. For provider setup, use the
-[Worker Previews migration guide](https://samebase.com/docs/cloudflare-previews-migration).
+The deploy commands run `convex-hosting deploy`. It builds the app, uploads `dist/client` to the
+`hosting` component, and pushes the Convex functions. The push switches the site. The files keep
+the settings of the former Worker: `html_handling` is `none`, and a route without a file gets the
+single-page shell `/index.html`. `public/_redirects` serves the prerendered landing page at `/`
+and redirects `/_landing.html` to `/`, with Cloudflare's rules. The Convex Auth and mail ingress
+routes in `convex/http.ts` are exact paths or longer prefixes, so they win over the site. Deploy
+with these commands, never with a plain `npx convex deploy`, which pushes the version of the last
+deploy from this checkout.
 
-A Workers build on a branch other than `main` writes a Preview build of the app Worker. The preview
-deploy command uploads it and sets `SITE_URL` in the Convex preview of the branch. Previews receive
-no mail and have no file storage. Production mail storage and email routing stay unchanged.
+`.github/workflows/deploy.yml` deploys `main` to production at `https://<deployment>.convex.site`
+after `pnpm run check`. It deploys each pull request from this repository to a Convex preview
+deployment named after the branch, at the `.convex.site` URL of that deployment, and posts the URL
+in a comment. Both jobs create the Convex Auth keys when a new deployment has none. The workflow
+reads `CONVEX_DEPLOY_KEY` and `CONVEX_PREVIEW_DEPLOY_KEY` from repository secrets; see the
+[setup stack](../../README.md#credentials). Previews receive no mail and have no file storage.
+Production mail storage and email routing stay unchanged.
 
 Set `OWNER_EMAIL`, `OWNER_SETUP_SECRET`, and `CLOUDFLARE_EMAIL_ACCOUNT_ID` as Convex project
 defaults for preview deployments. Leave sending credentials unset in previews unless they use an
