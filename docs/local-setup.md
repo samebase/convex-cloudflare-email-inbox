@@ -50,8 +50,9 @@ this once in a second terminal:
 pnpm --filter samebase-mail run deploy:dev
 ```
 
-It builds the app, uploads it to the development deployment, writes the file, and pushes. The first
-terminal then continues and starts the frontend.
+It builds the app, uploads it to the development deployment, writes the file, and pushes. The
+waiting watcher does not see the new file, so stop `pnpm run dev` and start it again. From then on,
+it starts the frontend as usual.
 
 Mail's frontend, Convex wrappers, and app scripts live in `apps/mail`. Put the local `.env.local`
 file there. The component lives in `packages/convex-cloudflare-email-inbox`, and the

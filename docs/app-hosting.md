@@ -34,7 +34,7 @@ Why:
 
 Costs:
 
-- The first `pnpm run dev` of a fresh checkout needs one `deploy:dev`. See
+- The first `pnpm run dev` of a fresh checkout needs one `deploy:dev` and a restart. See
   [local setup](./local-setup.md).
 - The deploy needs a key that can run internal functions. The GitHub secrets hold their own keys,
   apart from the key of the setup stack.

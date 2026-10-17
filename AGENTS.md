@@ -25,7 +25,7 @@ Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.de
 - Use `pnpm run dev` for normal development. It selects the primary or linked-worktree flow.
 - On a fresh checkout or worktree, the first Convex push fails until
   `.convex-hosting/version.js` exists. Run `pnpm --filter samebase-mail run deploy:dev` once in a
-  second terminal while `pnpm run dev` waits.
+  second terminal while `pnpm run dev` waits, then restart `pnpm run dev`.
 - Vite+ stays in `package.json` and supplies the dev, format, lint, test, and build tools behind the
   package scripts.
 

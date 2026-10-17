@@ -45,7 +45,8 @@ Leave Cloudflare sending credentials unset locally to prevent real email.
 On a fresh checkout or worktree, the first push fails with
 `Could not resolve "../.convex-hosting/version.js"`, and the frontend waits. Run
 `pnpm --filter samebase-mail run deploy:dev` once in a second terminal. It builds the app, uploads
-it to the development deployment, writes that file, and pushes. The first terminal then continues.
+it to the development deployment, writes that file, and pushes. Then stop `pnpm run dev` and start
+it again.
 
 Mail's local environment files live in `apps/mail`, beside `convex.json`.
 The following Convex environment variables configure the app:
