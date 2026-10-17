@@ -1,5 +1,5 @@
 diff --git a/server/stream.ts b/server/stream.ts
-index 2b1308aa1870ace24fb02be4bd3889d0ee941fd1..61aa8b4b3e70cd534a41fecae1ca68e416706fc7 100644
+index ebcb4749ce0025b69611cbb3a4be7249c2f11e65..9a06f6ad76edf033ec82af07a50b6942bc3a9a45 100644
 --- a/server/stream.ts
 +++ b/server/stream.ts
 @@ -446,8 +446,8 @@ export abstract class QueryStream<

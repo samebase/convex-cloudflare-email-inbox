@@ -2,7 +2,7 @@ packages:
   - apps/*
   - packages/*
 patchedDependencies:
-  convex-helpers@0.1.124: patches/convex-helpers@0.1.124.patch
+  convex-helpers@0.1.127: patches/convex-helpers@0.1.127.patch
 allowBuilds:
   "@parcel/watcher": false # Uses platform-specific prebuilt binaries.
   core-js-pure: false

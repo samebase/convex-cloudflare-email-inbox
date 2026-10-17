@@ -1,6 +1,6 @@
 {
   "name": "@samebase/convex-cloudflare-email-inbox-ui",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "An embedded React email monitor for the Cloudflare Email Inbox Convex component.",
   "keywords": [
     "cloudflare",
@@ -40,7 +40,7 @@
     "prepack": "pnpm run build"
   },
   "dependencies": {
-    "convex-helpers": "0.1.124"
+    "convex-helpers": "0.1.127"
   },
   "devDependencies": {
     "@samebase/convex-cloudflare-email-inbox": "workspace:*",
@@ -53,8 +53,8 @@
     "typescript": "~6.0.2"
   },
   "peerDependencies": {
-    "@samebase/convex-cloudflare-email-inbox": "^0.2.0 || ^0.3.0",
-    "convex": "^1.45.0",
+    "@samebase/convex-cloudflare-email-inbox": "^0.3.1",
+    "convex": "^1.46.0",
     "react": "^19.0.0"
   }
 }
