@@ -5,7 +5,6 @@ const generatedFiles = [
   ".playwright-cli/**",
   "apps/mail/convex/_generated/**",
   "apps/mail/src/routeTree.gen.ts",
-  "apps/mail/.cloudflare/**",
   "packages/*/src/component/_generated/**",
   "**/dist/**",
 ];

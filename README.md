@@ -48,28 +48,23 @@ pnpm run dev
 The development command builds and watches both packages, then starts Mail's Convex backend and
 frontend. See [local setup](./docs/local-setup.md) for deployment selection and app environment files.
 
-| Command                           | Purpose                                                                  |
-| --------------------------------- | ------------------------------------------------------------------------ |
-| `pnpm run check`                  | Check formatting, lint, types, and tests across all workspaces           |
-| `pnpm run build`                  | Build the component and the Mail app through its Cloudflare build script |
-| `pnpm run component:test-package` | Install and test the packed package in a fresh consumer                  |
-| `pnpm run component:codegen`      | Generate component types using Mail's Convex project                     |
-| `pnpm run deploy:dry-run`         | Build and validate the Mail Worker without uploading it                  |
+| Command                           | Purpose                                                        |
+| --------------------------------- | -------------------------------------------------------------- |
+| `pnpm run check`                  | Check formatting, lint, types, and tests across all workspaces |
+| `pnpm run build`                  | Build both packages and the Mail app                           |
+| `pnpm run component:test-package` | Install and test the packed package in a fresh consumer        |
+| `pnpm run component:codegen`      | Generate component types using Mail's Convex project           |
 
-Cloudflare Workers Builds can keep its repository root at `/`. Root `build`, `deploy`, and
-`deploy:preview` commands delegate to Mail with `apps/mail` as the working directory. The Worker
-configuration, assets, and Convex deployment selection resolve there.
-
-`apps/mail/cloudflare.config.ts` is the configuration of the Worker, in the format of the
-[Cloudflare CLI](https://developers.cloudflare.com/cf/projects/cloudflare-config/) (`cf`). The
-build writes the Build Output of the Worker with the Wrangler bundler, and `cf deploy --prebuilt`
-or `cf previews deploy --prebuilt` uploads it. `apps/mail/wrangler.config.ts` holds the build
-settings of the Wrangler bundler, such as the assets directory. Workers Builds runs the same package
-scripts as before: `pnpm run build`, `pnpm run deploy`, and `pnpm run deploy:preview`.
+Mail's own Convex deployment serves the app through
+[`@samebase/convex-hosting`](https://github.com/samebase/convex-hosting), at
+`https://<deployment>.convex.site`. `.github/workflows/deploy.yml` deploys `main` to production
+and each pull request to a Convex preview deployment. The
+[Mail README](./apps/mail/README.md#checks-and-deploys) describes the deploy.
 
 The [integration guide](./docs/integration.md) covers development across repositories and the
 production rollout. The [design and OpenSend review](./docs/email-component-design.md) records
-decisions, verification, and questions for reviewers.
+decisions, verification, and questions for reviewers. The [app hosting note](./docs/app-hosting.md)
+records why the app moved from its Worker to convex-hosting.
 
 ## License
 
@@ -77,14 +72,13 @@ Licensed under [Apache License 2.0](./LICENSE).
 
 ## Setup stack
 
-`apps/mail/alchemy.run.ts` declares the setup around Workers Builds: the app Worker, its Workers
-Builds link to this repository, the Convex project with the deploy keys the builds use, and the inbox
-from `@samebase/convex-cloudflare-email-inbox/alchemy`. The inbox is its own Worker, an Alchemy
-Worker that the component package ships and Alchemy bundles at deploy time, and an R2 bucket, with
-names that Alchemy generates, the `MAIL_BRIDGE_SECRET` on that Worker and in Convex, and
-`MAIL_WORKER_URL` in Convex. The inbox Worker enables Email Routing on the mail zone and points the
-zone's catch-all rule at itself. Workers Builds deploys the app from `apps/mail/cloudflare.config.ts`;
-the stack imports the app Worker name from that file. Run the `alchemy` commands in `apps/mail`.
+`apps/mail/alchemy.run.ts` declares the setup around the app: the Convex project with a production
+deploy key, and the inbox from `@samebase/convex-cloudflare-email-inbox/alchemy`. The inbox is its
+own Worker, an Alchemy Worker that the component package ships and Alchemy bundles at deploy time,
+and an R2 bucket, with names that Alchemy generates, the `MAIL_BRIDGE_SECRET` on that Worker and in
+Convex, and `MAIL_WORKER_URL` in Convex. The inbox Worker enables Email Routing on the mail zone and
+points the zone's catch-all rule at itself. The app has no Worker: its Convex deployment serves it,
+and `.github/workflows/deploy.yml` deploys it. Run the `alchemy` commands in `apps/mail`.
 `.github/workflows/infra.yml` runs the stack there: a plan and a drift report on pull requests that
 touch these files, and a deploy on `main`. The state is in Alchemy's Cloudflare state store.
 
@@ -96,10 +90,15 @@ them.
 
 Put `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in `apps/mail/.env` for local runs. The workflow reads
 them and `CONVEX_ACCESS_TOKEN` (a Convex team access token) from repository secrets. Locally, the
-Convex CLI login is enough. The API token needs these permissions: Workers Scripts, Workers Builds
-Configuration, Workers R2 Storage, Account Settings Read, Secrets Store, Email Routing Rules, Zone
-Read, and DNS. Email Routing Rules and DNS edit cover the routing: enabling Email Routing writes the
-zone's MX and SPF records.
+Convex CLI login is enough. The API token needs these permissions: Workers Scripts, Workers R2
+Storage, Account Settings Read, Secrets Store, Email Routing Rules, Zone Read, and DNS. Email
+Routing Rules and DNS edit cover the routing: enabling Email Routing writes the zone's MX and SPF
+records.
+
+`.github/workflows/deploy.yml` reads two other repository secrets: `CONVEX_DEPLOY_KEY`, a
+production deploy key, and `CONVEX_PREVIEW_DEPLOY_KEY`, a preview deploy key of the project. The
+[deploy guide](https://github.com/samebase/convex-hosting/blob/main/docs/deploy.md#deploy-tools-and-ci)
+of convex-hosting shows how to create them and store them with `gh secret set`.
 
 ### Settings the stack does not touch
 
@@ -112,22 +111,19 @@ zone's MX and SPF records.
 
 ### Manual steps
 
-1. Install the Cloudflare Workers and Pages GitHub App on the repository, once for each account.
-   Start from **Workers & Pages** in the Cloudflare dashboard.
-2. Set the settings above.
+1. Set the settings above.
+2. Create the two deploy keys of `.github/workflows/deploy.yml` as repository secrets.
 
 ### Fresh install
 
-1. Fork the repository. Change the three values at the top of `apps/mail/alchemy.run.ts` and the Worker name
-   in `apps/mail/cloudflare.config.ts`.
+1. Fork the repository. Change the three values at the top of `apps/mail/alchemy.run.ts`.
 2. In `apps/mail`, create the Alchemy state store once for each Cloudflare account:
    `npx alchemy provider cloudflare bootstrap`.
-3. Do manual step 1.
-4. In `apps/mail`, run `npx alchemy deploy --stage prod`.
-5. Do manual step 2.
-6. Push once to `main`. Workers Builds then deploys Convex and the Worker.
+3. In `apps/mail`, run `npx alchemy deploy --stage prod`.
+4. Do the manual steps.
+5. Push once to `main`. `.github/workflows/deploy.yml` then deploys Convex and the app.
 
-A second install in the same account needs a new stack name and Worker name. Alchemy generates the
+A second install in the same account needs a new stack name. Alchemy generates the
 inbox Worker and bucket names from the stack name, so they need no change. The app
 names its mail domain `json.md` in `apps/mail/convex/bootstrap.ts` and
 `apps/mail/src/components/mail/MailWorkspace.tsx`. For a different zone, change the domain in these

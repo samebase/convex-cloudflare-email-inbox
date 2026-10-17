@@ -37,9 +37,8 @@ uses built exports, not imports into another repository's source. Changes to com
 signatures need component codegen followed by a build and consumer codegen. Normal implementation
 changes are rebuilt by the watcher.
 
-Mail's local `.env.local` and `.dev.vars` files belong in `apps/mail`. App-specific commands run
-through `pnpm --filter samebase-mail ...`. Cloudflare can keep its build root at `/` because the root
-`build`, `deploy`, and `deploy:preview` scripts delegate to the app's directory.
+Mail's local `.env.local` file belongs in `apps/mail`. App-specific commands run through
+`pnpm --filter samebase-mail ...`.
 
 Before shipping, replace the temporary link with the exact published version and regenerate the
 lockfile. Never commit an absolute local dependency. `pnpm run component:test-package` checks the

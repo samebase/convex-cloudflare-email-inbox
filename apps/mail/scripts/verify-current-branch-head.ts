@@ -4,8 +4,14 @@ import { execFileSync } from "node:child_process";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
+/**
+ * Refuses a deploy from a commit that is no longer the head of its branch. A re-run of an old
+ * workflow run checks out its old commit, and its push would put older code over newer code. The
+ * concurrency groups of .github/workflows/deploy.yml order runs but do not refuse a stale one.
+ */
 export function verifyCurrentBranchHead(
-  env: NodeJS.ProcessEnv,
+  branch: string,
+  commit: string,
   readRemoteHead = (branch: string) => {
     const output = execFileSync(
       "git",
@@ -20,34 +26,21 @@ export function verifyCurrentBranchHead(
 
     return remoteHead;
   },
-  readCheckoutHead = () => execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
 ) {
-  if (env["WORKERS_CI"] !== "1" && env["WORKERS_CI"] !== "true") {
-    return;
-  }
-
-  const branch = env["WORKERS_CI_BRANCH"];
-
-  if (!branch) {
-    throw new Error("Workers Builds must provide WORKERS_CI_BRANCH before Convex deploys.");
-  }
-
-  // A manual Workers Build can identify the commit as a branch name, so use the checkout itself.
-  const checkoutHead = readCheckoutHead();
-  if (!checkoutHead) {
-    throw new Error("Git did not return the checked-out commit for this Workers Build.");
-  }
-
   const remoteHead = readRemoteHead(branch);
 
-  if (remoteHead !== checkoutHead) {
+  if (remoteHead !== commit) {
     throw new Error(
-      `Workers Build ${checkoutHead} is stale: ${branch} now points to ${remoteHead}. Convex was not deployed.`,
+      `${commit} is stale: ${branch} now points to ${remoteHead}. Convex was not deployed.`,
     );
   }
 }
 
 const entrypoint = process.argv[1];
 if (entrypoint && import.meta.url === pathToFileURL(entrypoint).href) {
-  verifyCurrentBranchHead(process.env);
+  const [branch, commit] = process.argv.slice(2);
+  if (!branch || !commit) {
+    throw new Error("Usage: node ./scripts/verify-current-branch-head.ts <branch> <commit>");
+  }
+  verifyCurrentBranchHead(branch, commit);
 }

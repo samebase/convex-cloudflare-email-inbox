@@ -4,61 +4,22 @@ import { describe, expect, it } from "vite-plus/test";
 import { verifyCurrentBranchHead } from "./verify-current-branch-head.ts";
 
 describe("verify-current-branch-head", () => {
-  it("accepts a manual build while its checkout is the branch head", () => {
-    verifyCurrentBranchHead(
-      {
-        WORKERS_CI: "1",
-        WORKERS_CI_BRANCH: "feature",
-        WORKERS_CI_COMMIT_SHA: "feature",
-      },
-      (branch) => {
-        expect(branch).toBe("feature");
-        return "new";
-      },
-      () => "new",
+  it("accepts the commit that the branch points to", () => {
+    expect(() => verifyCurrentBranchHead("main", "abc123", () => "abc123")).not.toThrow();
+  });
+
+  it("refuses a commit that the branch no longer points to", () => {
+    expect(() => verifyCurrentBranchHead("feature", "abc123", () => "def456")).toThrow(
+      "abc123 is stale: feature now points to def456. Convex was not deployed.",
     );
   });
 
-  it("rejects a build after a newer commit reaches its branch", () => {
-    expect(() =>
-      verifyCurrentBranchHead(
-        {
-          WORKERS_CI: "1",
-          WORKERS_CI_BRANCH: "feature",
-        },
-        () => "new",
-        () => "old",
-      ),
-    ).toThrow("Convex was not deployed");
-  });
-
-  it("fails closed without Workers Builds branch identity", () => {
-    expect(() =>
-      verifyCurrentBranchHead(
-        { WORKERS_CI: "1" },
-        () => "new",
-        () => "new",
-      ),
-    ).toThrow("WORKERS_CI_BRANCH");
-  });
-
-  it("fails closed without a checked-out commit", () => {
-    expect(() =>
-      verifyCurrentBranchHead(
-        { WORKERS_CI: "1", WORKERS_CI_BRANCH: "feature" },
-        () => "new",
-        () => "",
-      ),
-    ).toThrow("checked-out commit");
-  });
-
-  it("skips the provider check during local deploy validation", () => {
-    expect(() =>
-      verifyCurrentBranchHead(
-        {},
-        () => "unused",
-        () => "unused",
-      ),
-    ).not.toThrow();
+  it("reads the head of the named branch", () => {
+    const branches: string[] = [];
+    verifyCurrentBranchHead("nicu-preview", "abc123", (branch) => {
+      branches.push(branch);
+      return "abc123";
+    });
+    expect(branches).toEqual(["nicu-preview"]);
   });
 });

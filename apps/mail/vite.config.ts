@@ -12,7 +12,6 @@ export default defineConfig({
       "src/**/*.test.ts",
       "convex/**/*.test.ts",
       "shared/**/*.test.ts",
-      "worker/**/*.test.ts",
       "scripts/**/*.test.ts",
     ],
   },

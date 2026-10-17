@@ -23,6 +23,9 @@ Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.de
 
 - Install Vite+ once to supply Node.js, then run `corepack enable` to make pnpm available.
 - Use `pnpm run dev` for normal development. It selects the primary or linked-worktree flow.
+- On a fresh checkout or worktree, the first Convex push fails until
+  `.convex-hosting/version.js` exists. Run `pnpm --filter samebase-mail run deploy:dev` once in a
+  second terminal while `pnpm run dev` waits, then restart `pnpm run dev`.
 - Vite+ stays in `package.json` and supplies the dev, format, lint, test, and build tools behind the
   package scripts.
 
@@ -51,8 +54,9 @@ remove the line when you edit the file.
   extension scanner.
 - Run `pnpm run check`. It checks formatting, lint, browser TypeScript, Node TypeScript, Convex
   TypeScript, tests, and generated Cloudflare redirects.
-- Run `pnpm run build` before a deploy. The real Cloudflare build path runs the complete check before
-  it builds the app.
+- Deploy with `pnpm run deploy` in `apps/mail` (convex-hosting), never with a plain
+  `npx convex deploy`. The deploy does not run the check. `.github/workflows/deploy.yml` runs
+  `pnpm run check` before it deploys `main`.
 
 <!-- convex-ai-start -->
 
@@ -72,7 +76,7 @@ Convex agent skills for common tasks can be installed by running
 
 - `packages/convex-cloudflare-email-inbox` is the publishable component.
 - `packages/convex-cloudflare-email-inbox-ui` is the optional React monitor and message reader.
-- `apps/mail` is the Mail reference app, including its Convex wrappers, frontend, Worker, and app scripts.
+- `apps/mail` is the Mail reference app, including its Convex wrappers, frontend, and app scripts.
 - The root owns shared tooling and commands. Run `pnpm run dev`, `pnpm run check`, and `pnpm run build` here.
 - Run app-specific Convex commands with `pnpm --filter samebase-mail exec convex ...`.
 - Keep the installed Convex component name `mail` to preserve its data namespace.

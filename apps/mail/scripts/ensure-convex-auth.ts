@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { generateKeyPairSync } from "node:crypto";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { parseArgs } from "node:util";
 
 const CONVEX_CLI_PATH = fileURLToPath(
   new URL("../node_modules/convex/bin/main.js", import.meta.url),
@@ -114,12 +115,16 @@ async function setConvexEnv(
   });
 }
 
+/**
+ * Creates the Convex Auth keys when both are missing: in the named preview, or else in the
+ * deployment that `env` selects.
+ */
 export async function ensureConvexAuth(
   env: NodeJS.ProcessEnv,
+  previewName: string | undefined,
   runConvex: RunConvex = runConvexCli,
 ) {
-  const branch = env["WORKERS_CI_BRANCH"];
-  const selectionArgs = branch && branch !== "main" ? ["--preview-name", branch] : [];
+  const selectionArgs = previewName ? ["--preview-name", previewName] : [];
   const existingPrivateKey = await readConvexEnv("JWT_PRIVATE_KEY", env, selectionArgs, runConvex);
   const existingJwks = await readConvexEnv("JWKS", env, selectionArgs, runConvex);
 
@@ -139,5 +144,6 @@ export async function ensureConvexAuth(
 
 const entrypoint = process.argv[1];
 if (entrypoint && import.meta.url === pathToFileURL(entrypoint).href) {
-  await ensureConvexAuth(process.env);
+  const { values } = parseArgs({ options: { "preview-name": { type: "string" } } });
+  await ensureConvexAuth(process.env, values["preview-name"]);
 }
