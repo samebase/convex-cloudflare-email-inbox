@@ -155,6 +155,55 @@ describe("component history pagination", () => {
     return { t, inboxIds };
   }
 
+  it.each(["cursor", "endCursor"] as const)(
+    "rejects a foreign %s for inbox and thread pagination",
+    async (cursorField) => {
+      const { t, inboxIds } = await setupHistory();
+      const [lowerInboxId, upperInboxId] = inboxIds.toSorted();
+      const inboxId = cursorField === "cursor" ? upperInboxId : lowerInboxId;
+      const foreignInboxId = cursorField === "cursor" ? lowerInboxId : upperInboxId;
+      const timestamp =
+        cursorField === "cursor" ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER;
+      const foreignCursor = JSON.stringify([foreignInboxId, timestamp]);
+      const history = await t.query(api.mail.listHistory, {
+        inboxId,
+        status: null,
+        paginationOpts: {
+          numItems: 20,
+          cursor: cursorField === "cursor" ? foreignCursor : null,
+          ...(cursorField === "endCursor" ? { endCursor: foreignCursor } : {}),
+        },
+      });
+      const threads = await t.query(api.mail.listThreads, {
+        inboxId,
+        paginationOpts: {
+          numItems: 20,
+          cursor: cursorField === "cursor" ? foreignCursor : null,
+          ...(cursorField === "endCursor" ? { endCursor: foreignCursor } : {}),
+        },
+      });
+      const threadIds = await t.run(async (ctx) =>
+        (await ctx.db.query("emailThreads").take(10)).map((thread) => thread._id).toSorted(),
+      );
+      const [lowerThreadId, upperThreadId] = threadIds;
+      const threadId = cursorField === "cursor" ? upperThreadId : lowerThreadId;
+      const foreignThreadId = cursorField === "cursor" ? lowerThreadId : upperThreadId;
+      const foreignMessageCursor = JSON.stringify([foreignThreadId, timestamp]);
+      const messages = await t.query(api.mail.listMessages, {
+        threadId,
+        paginationOpts: {
+          numItems: 20,
+          cursor: cursorField === "cursor" ? foreignMessageCursor : null,
+          ...(cursorField === "endCursor" ? { endCursor: foreignMessageCursor } : {}),
+        },
+      });
+
+      expect(history.page).toEqual([]);
+      expect(threads.page).toEqual([]);
+      expect(messages.page).toEqual([]);
+    },
+  );
+
   it("paginates metadata newest first across equal timestamps without changing unread counts", async () => {
     const { t, inboxIds } = await setupHistory();
     const first = await t.query(api.mail.listHistory, {
