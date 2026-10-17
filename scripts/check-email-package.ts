@@ -50,12 +50,20 @@ run(["exec", "--", "vitest", "run", "consumer.test.ts"], consumerRoot);
 // EmailInbox points Alchemy at dist/worker/entry.js, and Alchemy bundles it
 // in the consumer's deploy. The entry must load with the runtime that a stack
 // installs, at the versions of the Mail stack in apps/mail: alchemy, effect,
-// and @effect/platform-node. The packed tarballs go in again, because an install
-// without them would remove them.
-const workspaceVersion = (name: string) =>
+// and @effect/platform-node. Their Effect support packages must use the same
+// workspace versions, because newer releases can require a newer Effect peer.
+// The packed tarballs go in again, because an install without them would remove them.
+const workspaceRequire = createRequire(new URL("../apps/mail/package.json", import.meta.url));
+const alchemyRequire = createRequire(workspaceRequire.resolve("alchemy"));
+const platformNodeRequire = createRequire(
+  workspaceRequire.resolve("@effect/platform-node/package.json"),
+);
+const workspaceVersion = (name: string, resolveFrom?: NodeJS.Require) =>
   JSON.parse(
     readFileSync(
-      new URL(`../apps/mail/node_modules/${name}/package.json`, import.meta.url),
+      resolveFrom
+        ? resolveFrom.resolve(`${name}/package.json`)
+        : new URL(`../apps/mail/node_modules/${name}/package.json`, import.meta.url),
       "utf8",
     ),
   ).version;
@@ -70,6 +78,10 @@ run(
     ...["alchemy", "effect", "@effect/platform-node"].map(
       (name) => `${name}@${workspaceVersion(name)}`,
     ),
+    ...["@effect/sql-d1", "@effect/sql-sqlite-do"].map(
+      (name) => `${name}@${workspaceVersion(name, alchemyRequire)}`,
+    ),
+    `@effect/platform-node-shared@${workspaceVersion("@effect/platform-node-shared", platformNodeRequire)}`,
   ],
   consumerRoot,
 );
