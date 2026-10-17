@@ -20,7 +20,6 @@
 //   npx alchemy plan --stage prod
 //
 // A fork changes the three values below.
-import * as WorkersBuilds from "@samebase/alchemy-cloudflare-workers-builds";
 import * as Convex from "@samebase/alchemy-convex";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import * as Alchemy from "alchemy";
@@ -38,17 +37,7 @@ const MAIL_ZONE = "json.md";
 export default Alchemy.Stack(
   "SamebaseMail",
   {
-    providers: Layer.mergeAll(
-      Cloudflare.providers(),
-      // No resource below uses it. The state still has the rows of the app
-      // Worker and its Workers Builds link from before convex-hosting, and
-      // Alchemy needs the provider of a row to remove it: the deploy deletes
-      // the Builds link and drops the retained Worker from state, with the
-      // Workers Builds Configuration permission on the token. Remove the
-      // provider and its package once that deploy has run on main.
-      WorkersBuilds.providers(),
-      Convex.providers(),
-    ),
+    providers: Layer.mergeAll(Cloudflare.providers(), Convex.providers()),
     // State lives in the Cloudflare state store (an encrypted Durable Object in
     // the account), so the laptop and .github/workflows/infra.yml share it.
     state: Cloudflare.state(),
