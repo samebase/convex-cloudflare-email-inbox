@@ -1,5 +1,6 @@
 import { defineApp } from "convex/server";
 import mail from "@samebase/convex-cloudflare-email-inbox/convex.config.js";
+import hosting from "@samebase/convex-hosting/convex.config";
 import { v } from "convex/values";
 
 const app = defineApp({
@@ -19,5 +20,6 @@ app.use(mail, {
     MAIL_BRIDGE_SECRET: app.env.MAIL_BRIDGE_SECRET,
   },
 });
+app.use(hosting);
 
 export default app;

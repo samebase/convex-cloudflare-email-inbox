@@ -21,7 +21,7 @@ describe("ensure-convex-auth", () => {
   it("sets both auth keys when direct Convex reads return empty values", async () => {
     const calls: string[][] = [];
 
-    await ensureConvexAuth({}, async (args) => {
+    await ensureConvexAuth({}, undefined, async (args) => {
       calls.push(args);
       return { code: 0, stdout: "", stderr: "" };
     });
@@ -40,7 +40,7 @@ describe("ensure-convex-auth", () => {
 
   it("creates auth keys in the same named preview as the build", async () => {
     const calls: string[][] = [];
-    await ensureConvexAuth({ WORKERS_CI_BRANCH: "nicu-preview-smoke" }, async (args) => {
+    await ensureConvexAuth({}, "nicu-preview-smoke", async (args) => {
       calls.push(args);
       return { code: 0, stdout: "", stderr: "" };
     });
@@ -57,7 +57,7 @@ describe("ensure-convex-auth", () => {
 
   it("keeps existing preview auth keys on a rebuild", async () => {
     const runConvex = vi.fn(async () => ({ code: 0, stdout: "configured", stderr: "" }));
-    await ensureConvexAuth({ WORKERS_CI_BRANCH: "nicu-preview-smoke" }, runConvex);
+    await ensureConvexAuth({}, "nicu-preview-smoke", runConvex);
 
     expect(runConvex.mock.calls).toHaveLength(2);
   });
@@ -65,7 +65,7 @@ describe("ensure-convex-auth", () => {
   it("does not replace auth keys when an environment read fails", async () => {
     const calls: string[][] = [];
     await expect(
-      ensureConvexAuth({ WORKERS_CI_BRANCH: "nicu-preview-smoke" }, async (args) => {
+      ensureConvexAuth({}, "nicu-preview-smoke", async (args) => {
         calls.push(args);
         return { code: 1, stdout: "", stderr: "Environment read failed" };
       }),
