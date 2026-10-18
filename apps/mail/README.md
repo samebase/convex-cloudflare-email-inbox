@@ -94,10 +94,12 @@ with these commands, never with a plain `npx convex deploy`, which pushes the ve
 deploy from this checkout.
 
 `.github/workflows/deploy.yml` deploys `main` to production at `https://<deployment>.convex.site`
-after `pnpm run check`. It deploys each pull request from this repository to a Convex preview
-deployment named after the branch, at the `.convex.site` URL of that deployment, and posts the URL
-in a comment. Both jobs create the Convex Auth keys when a new deployment has none. The workflow
-reads `CONVEX_DEPLOY_KEY` and `CONVEX_PREVIEW_DEPLOY_KEY` from repository secrets; see the
+after `pnpm run check`, through the
+[deploy action](https://github.com/samebase/convex-hosting/blob/main/docs/deploy.md#github-actions)
+of convex-hosting. It deploys each pull request from this repository to the Convex preview
+`pr-<number>`, shows its `.convex.site` URL on the pull request, and deletes the preview when the
+pull request closes. Each deploy creates the Convex Auth keys when a new deployment has none. The
+workflow reads `CONVEX_DEPLOY_KEY` and `CONVEX_PREVIEW_DEPLOY_KEY` from repository secrets; see the
 [setup stack](../../README.md#credentials). Previews receive no mail and have no file storage.
 Production mail storage and email routing stay unchanged.
 
