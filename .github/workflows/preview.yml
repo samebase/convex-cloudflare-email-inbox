@@ -21,7 +21,7 @@ jobs:
       # The app imports these two packages from their builds.
       - run: pnpm run component:build
       - id: deploy
-        uses: samebase/convex-hosting/actions/deploy@v1
+        uses: samebase/convex-hosting/actions/preview@v1
         with:
           { deploy-key: "${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}", working-directory: apps/mail }
       # A new deployment has no Convex Auth keys. Existing keys stay.
@@ -37,6 +37,6 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: { group: "preview-${{ github.head_ref }}", queue: max }
     steps:
-      - uses: samebase/convex-hosting/actions/deploy@v1
+      - uses: samebase/convex-hosting/actions/cleanup@v1
         with:
           { deploy-key: "${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}", working-directory: apps/mail }
