@@ -57,8 +57,8 @@ frontend. See [local setup](./docs/local-setup.md) for deployment selection and 
 
 Mail's own Convex deployment serves the app through
 [`@samebase/convex-hosting`](https://github.com/samebase/convex-hosting), at
-`https://<deployment>.convex.site`. `.github/workflows/deploy.yml` deploys `main` to production
-and each pull request to a Convex preview deployment. The
+`https://<deployment>.convex.site`. `.github/workflows/deploy.yml` deploys `main` to production,
+and `.github/workflows/preview.yml` deploys each pull request to a Convex preview deployment. The
 [Mail README](./apps/mail/README.md#checks-and-deploys) describes the deploy.
 
 The [integration guide](./docs/integration.md) covers development across repositories and the
@@ -95,8 +95,8 @@ Storage, Account Settings Read, Secrets Store, Email Routing Rules, Zone Read, a
 Routing Rules and DNS edit cover the routing: enabling Email Routing writes the zone's MX and SPF
 records.
 
-`.github/workflows/deploy.yml` reads two other repository secrets: `CONVEX_DEPLOY_KEY`, a
-production deploy key, and `CONVEX_PREVIEW_DEPLOY_KEY`, a preview deploy key of the project. The
+The deploy workflows read two other repository secrets: `CONVEX_DEPLOY_KEY`, a production deploy
+key, and `CONVEX_PREVIEW_DEPLOY_KEY`, a preview deploy key of the project. The
 [deploy guide](https://github.com/samebase/convex-hosting/blob/main/docs/deploy.md#deploy-tools-and-ci)
 of convex-hosting shows how to create them and store them with `gh secret set`.
 
@@ -112,7 +112,7 @@ of convex-hosting shows how to create them and store them with `gh secret set`.
 ### Manual steps
 
 1. Set the settings above.
-2. Create the two deploy keys of `.github/workflows/deploy.yml` as repository secrets.
+2. Create the two deploy keys of the deploy workflows as repository secrets.
 
 ### Fresh install
 
