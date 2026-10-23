@@ -1,31 +1,18 @@
-// The setup around the component, as one Alchemy function: the Worker that
-// receives, stores, and serves mail, its bucket, and what that Worker and a
-// Convex deployment must share. It sits next to the component to try the
-// idea that a component ships its own wiring.
-//
-// The Worker is the Alchemy Worker in ./worker/entry.ts, which the package
-// ships; Alchemy bundles it when it deploys. The app's own Worker stays
-// untouched. The sending credentials the component reads
-// (CLOUDFLARE_EMAIL_API_TOKEN and CLOUDFLARE_EMAIL_ACCOUNT_ID) are operator
-// settings and stay in the Convex dashboard.
-import * as Convex from "@samebase/alchemy-convex";
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Namespace from "alchemy/Namespace";
 import * as Output from "alchemy/Output";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
-import type * as Redacted from "effect/Redacted";
 import { inbox } from "./worker/entry.js";
 
 export interface EmailInboxProps {
-  /** The Convex deployment that runs the component, and a deploy key of it. */
-  readonly deployment: Alchemy.Input<string>;
-  readonly deployKey: Alchemy.Input<Redacted.Redacted<string>>;
   /** The .convex.site URL of the deployment. The Worker posts inbound mail there. */
   readonly convexSiteUrl: Alchemy.Input<string>;
   /** The zone that receives the mail, by name or id. Its catch-all rule sends every message to the Worker. */
   readonly zone: string;
+  /** The sending domain in this zone, either the zone apex or a subdomain. */
+  readonly sendingDomain: string;
 }
 
 /**
@@ -38,12 +25,9 @@ const keep = Effect.gen(function* () {
 }).pipe(Effect.orDie);
 
 /**
- * One inbox: the Worker with its bucket, the secret and the URL that let the
- * Worker and Convex trust each other, and the routing of the zone's mail to
- * the Worker. The resources go under `id` in the stack state.
- *
- * The Worker enables Email Routing on the zone and points the zone's
- * catch-all rule at itself (Cloudflare.email in ./worker/entry.ts).
+ * Provision sending, receiving, and storage for the component. The app passes
+ * `env` to its Convex deployment and then to its mounted mail component.
+ * Resources use native Alchemy handles under `id` in the stack state.
  */
 export const EmailInbox = (id: string, props: EmailInboxProps) =>
   Namespace.push(
@@ -59,13 +43,43 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
           main: new URL("./worker/entry.js", import.meta.url).href,
           env: { CONVEX_SITE_URL: props.convexSiteUrl, MAIL_BRIDGE_SECRET: bridgeSecret.text },
         },
-        inbox(Cloudflare.email({ zone: props.zone })),
+        inbox(Cloudflare.email()),
       ).pipe(Alchemy.RemovalPolicy.retain(keep));
-      yield* Convex.EnvironmentVariable("ConvexBridgeSecret", {
-        deployment: props.deployment,
-        deployKey: props.deployKey,
-        name: "MAIL_BRIDGE_SECRET",
-        value: bridgeSecret.text,
+
+      // Keep the IDs used by Cloudflare.email({ zone }) in the deployed stack.
+      // The routing resource also resolves a zone name to the ID needed for sending.
+      const routing = yield* Namespace.push(
+        "Inbox",
+        Effect.gen(function* () {
+          const routing = yield* Cloudflare.Email.Routing("EmailRouting", {
+            zone: props.zone,
+            enabled: true,
+          }).pipe(Alchemy.RemovalPolicy.retain());
+          yield* Cloudflare.Email.CatchAll("EmailCatchAll", {
+            zone: routing.zoneId,
+            name: "Inbox",
+            enabled: true,
+            actions: [{ type: "worker", value: [worker.workerName] }],
+          }).pipe(Alchemy.RemovalPolicy.retain(keep));
+          return routing;
+        }),
+      );
+      // The domain can serve other apps, so removing this inbox must not delete it.
+      const sendingDomain = yield* Cloudflare.Email.SendingSubdomain("SendingDomain", {
+        zoneId: routing.zoneId,
+        name: props.sendingDomain,
+      }).pipe(Alchemy.RemovalPolicy.retain());
+      const sendingToken = yield* Cloudflare.ApiToken.AccountApiToken("SendingToken", {
+        accountId: worker.accountId,
+        policies: worker.accountId.pipe(
+          Output.map((accountId) => [
+            {
+              effect: "allow" as const,
+              permissionGroups: ["Email Sending Write" as const],
+              resources: { [`com.cloudflare.api.account.${accountId}`]: "*" },
+            },
+          ]),
+        ),
       });
 
       // Convex calls the Worker at this URL to serve stored objects. The URL
@@ -77,13 +91,18 @@ export const EmailInbox = (id: string, props: EmailInboxProps) =>
             : Effect.succeed(url),
         ),
       );
-      yield* Convex.EnvironmentVariable("ConvexWorkerUrl", {
-        deployment: props.deployment,
-        deployKey: props.deployKey,
-        name: "MAIL_WORKER_URL",
-        value: workerUrl,
-      });
-
-      return { workerUrl: worker.url };
+      return {
+        worker,
+        bridgeSecret,
+        routing,
+        sendingDomain,
+        sendingToken,
+        env: {
+          CLOUDFLARE_EMAIL_API_TOKEN: sendingToken.value,
+          CLOUDFLARE_EMAIL_ACCOUNT_ID: sendingToken.accountId,
+          MAIL_BRIDGE_SECRET: bridgeSecret.text,
+          MAIL_WORKER_URL: workerUrl,
+        },
+      };
     }),
   );

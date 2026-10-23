@@ -62,8 +62,10 @@ The following Convex environment variables configure the app:
 
 Mail is received, stored, and served by the inbox Worker that the [setup stack](../../README.md#setup-stack)
 uploads from the component, with its own R2 bucket. The stack sets `MAIL_BRIDGE_SECRET` on that
-Worker and in Convex production, and `MAIL_WORKER_URL` in Convex production. The other variables are
-set by hand. Sending runs in the Convex component, not a Worker.
+Worker and in Convex production, and `MAIL_WORKER_URL` in Convex production. It also registers the
+sending domain, creates the sending token, and sets the two `CLOUDFLARE_EMAIL_*` values. The app's
+`convex.config.ts` passes all four values to its mounted `mail` component. Only the owner settings
+are set by hand. Sending runs in the Convex component.
 
 To create the two initial inboxes in a deployment, run:
 

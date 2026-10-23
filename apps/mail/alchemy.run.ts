@@ -1,22 +1,20 @@
 // Setup stack for Mail. It declares the Convex project, a production deploy
 // key, and the inbox of the component
 // (@samebase/convex-cloudflare-email-inbox/alchemy): the Worker that receives
-// mail, which the component ships and Alchemy bundles here, its R2 bucket, and
-// what that Worker and Convex must share. The app itself is served by its
-// Convex deployment through @samebase/convex-hosting, and
+// mail, which the component ships and Alchemy bundles here, its R2 bucket,
+// its sending domain and token, and the values that Worker and Convex share.
+// The app is served by its Convex deployment through @samebase/convex-hosting, and
 // .github/workflows/deploy.yml deploys it.
 //
-// The stack owns wiring, not settings. A value that a person opens a
-// dashboard to check (the owner email, the setup secret, the sending token)
-// stays in that dashboard. The repository README lists them under "Setup
-// stack".
+// Owner email and sign-up settings stay in the Convex dashboard. The stack
+// creates sending credentials and writes the component's environment values.
 //
 // .github/workflows/infra.yml runs it: a plan and a drift report on every
 // pull request that touches this file, a deploy on main. Run it from
 // apps/mail. Locally it needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID
 // in apps/mail/.env (a user token with
 // Workers Scripts, Workers R2 Storage, Secrets Store, Email Routing rules,
-// Zone read, DNS) and the Convex CLI login:
+// Zone read, DNS, Email Sending, Account API Tokens) and the Convex CLI login:
 //   npx alchemy plan --stage prod
 //
 // A fork changes the three values below.
@@ -24,6 +22,7 @@ import * as Convex from "@samebase/alchemy-convex";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
+import * as Namespace from "alchemy/Namespace";
 import * as Output from "alchemy/Output";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -60,7 +59,7 @@ export default Alchemy.Stack(
     // it in the Convex dashboard.
     //
     // The key was made for the Workers Builds deploys, hence its name and its
-    // actions. Now only the inbox wiring uses it, to write two environment
+    // actions. Now only the inbox wiring uses it, to write four environment
     // variables. Without allowedActions, Convex grants every deployment
     // action, including data writes and backup deletes.
     const deployKey = yield* Convex.DeployKey("DeployKey", {
@@ -86,12 +85,43 @@ export default Alchemy.Stack(
       }),
     );
     const inbox = yield* EmailInbox("Mail", {
-      deployment,
-      deployKey: deployKey.deployKey,
       convexSiteUrl,
       zone: MAIL_ZONE,
+      sendingDomain: MAIL_ZONE,
     });
 
-    return { url: convexSiteUrl, inbox };
+    // Preserve the existing environment resource IDs while the app owns the
+    // connection to Convex. convex.config.ts passes these values to components.mail.
+    yield* Namespace.push(
+      "Mail",
+      Effect.gen(function* () {
+        yield* Convex.EnvironmentVariable("ConvexBridgeSecret", {
+          deployment,
+          deployKey: deployKey.deployKey,
+          name: "MAIL_BRIDGE_SECRET",
+          value: inbox.env.MAIL_BRIDGE_SECRET,
+        });
+        yield* Convex.EnvironmentVariable("ConvexWorkerUrl", {
+          deployment,
+          deployKey: deployKey.deployKey,
+          name: "MAIL_WORKER_URL",
+          value: inbox.env.MAIL_WORKER_URL,
+        });
+        yield* Convex.EnvironmentVariable("ConvexSendingToken", {
+          deployment,
+          deployKey: deployKey.deployKey,
+          name: "CLOUDFLARE_EMAIL_API_TOKEN",
+          value: inbox.env.CLOUDFLARE_EMAIL_API_TOKEN,
+        });
+        yield* Convex.EnvironmentVariable("ConvexSendingAccount", {
+          deployment,
+          deployKey: deployKey.deployKey,
+          name: "CLOUDFLARE_EMAIL_ACCOUNT_ID",
+          value: inbox.env.CLOUDFLARE_EMAIL_ACCOUNT_ID,
+        });
+      }),
+    );
+
+    return { url: convexSiteUrl, inbox: { workerUrl: inbox.worker.url } };
   }),
 );

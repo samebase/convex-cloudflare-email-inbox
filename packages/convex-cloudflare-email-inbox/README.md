@@ -6,8 +6,8 @@ runtime. Sending without attachments does not require a Worker or R2 bucket. Rec
 complete raw email and named attachments in your R2 bucket, with inbox data in your Convex deployment.
 
 There are three imports. `convex.config.js` is the Convex component. `./alchemy` is an Alchemy
-function that sets up receiving; it needs `alchemy`, `effect`, `@effect/platform-node`, and
-`@samebase/alchemy-convex`. The optional React monitor is the
+function that provisions sending, receiving, and storage; it needs `alchemy`, `effect`, and
+`@effect/platform-node`. The optional React monitor is the
 `@samebase/convex-cloudflare-email-inbox-ui` package.
 
 ```ts
@@ -16,14 +16,58 @@ import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import { EmailMonitor } from "@samebase/convex-cloudflare-email-inbox-ui";
 ```
 
-Inside a stack, `yield* EmailInbox("Mail", { deployment, deployKey, convexSiteUrl, zone })` deploys
-the Worker in `src/worker/entry.ts`, an Alchemy Worker on the Effect runtime that Alchemy bundles at
-deploy time, with a new R2 bucket. Alchemy generates both names. It sets the bridge secret on the
-Worker and in Convex, and `MAIL_WORKER_URL` in Convex. The Worker enables Email Routing on the zone
-and points the zone's catch-all rule at itself, so the API token needs Email Routing Rules and DNS
-edit permissions (enabling writes the zone's MX and SPF records). `convexSiteUrl` is the
-deployment's `.convex.site` URL. A destroy keeps the Worker and the bucket unless `DESTROY_APP` is
-`true`.
+## Provision with Alchemy
+
+Inside your Alchemy stack:
+
+```ts
+const inbox =
+  yield *
+  EmailInbox("Mail", {
+    convexSiteUrl, // The app's .convex.site URL.
+    zone: "example.com",
+    sendingDomain: "example.com",
+  });
+```
+
+This declares native Cloudflare resources: the packaged receiving Worker, its private R2 bucket,
+Email Routing and its catch-all rule, a sending domain, and an account API token with Email Sending
+Write permission. Alchemy generates the Worker and bucket names and the bridge secret. The zone
+must already exist in your Cloudflare account. `sendingDomain` is the zone apex or a subdomain;
+Cloudflare creates its sending DNS records. Routing sends unmatched incoming mail to this Worker.
+
+The returned `worker`, `bridgeSecret`, `routing`, `sendingDomain`, and `sendingToken` are native
+Alchemy resource handles. `env` contains the four values for the component. The app connects them
+to its Convex deployment. For example, with `@samebase/alchemy-convex`'s `Deployment` resource:
+
+```ts
+yield *
+  Convex.Deployment("Backend", {
+    project,
+    type: "prod",
+    env: inbox.env,
+  });
+```
+
+Use the project's production HTTP URL for `convexSiteUrl`, so the Worker does not depend on the
+deployment that receives its outputs. Mount the component with the environment values shown below,
+and [register the receiving routes](#receiving). That mount and the HTTP route registration connect
+this infrastructure to `components.mail`. Alchemy does not discover the component automatically.
+
+The provisioning token needs Workers Scripts, Workers R2 Storage, Account Settings Read, Email
+Routing Rules, Zone Read, DNS, Email Sending, and account **API Tokens Write** permissions. Add
+Secrets Store if you use Alchemy's Cloudflare state store. The generated sending token has only
+Email Sending Write access, but Cloudflare scopes it to the account, not one domain. Secret outputs
+stay redacted; do not return `inbox.env` as public stack outputs.
+
+If the sending domain already exists outside this stack, review the plan and explicitly adopt it.
+The sending domain and zone routing remain when the stack is removed. The sending token is revoked.
+The Worker, bucket, and catch-all rule remain unless `DESTROY_APP` is `true`.
+
+The helper no longer accepts `deployment` or `deployKey`, and it does not require
+`@samebase/alchemy-convex`. Apps that already manage individual Convex environment resources can
+assign `inbox.env` values to them. Keep their resource IDs when moving them out of the helper; see
+the [Mail reference stack](../../apps/mail/alchemy.run.ts).
 
 ## Install
 
@@ -42,20 +86,25 @@ const app = defineApp({
   env: {
     CLOUDFLARE_EMAIL_API_TOKEN: v.optional(v.string()),
     CLOUDFLARE_EMAIL_ACCOUNT_ID: v.optional(v.string()),
+    MAIL_BRIDGE_SECRET: v.optional(v.string()),
+    MAIL_WORKER_URL: v.optional(v.string()),
   },
 });
 app.use(mail, {
   env: {
     CLOUDFLARE_EMAIL_API_TOKEN: app.env.CLOUDFLARE_EMAIL_API_TOKEN,
     CLOUDFLARE_EMAIL_ACCOUNT_ID: app.env.CLOUDFLARE_EMAIL_ACCOUNT_ID,
+    MAIL_BRIDGE_SECRET: app.env.MAIL_BRIDGE_SECRET,
+    MAIL_WORKER_URL: app.env.MAIL_WORKER_URL,
   },
 });
 export default app;
 ```
 
-Set the two environment variables in the application's Convex deployment. The token needs
-Cloudflare Email Sending permission for the configured account, and the sender domain must be
-verified with Cloudflare Email Service. Never pass these credentials in message arguments.
+Alchemy supplies these four values through `inbox.env`. For sending only, you can instead set
+`CLOUDFLARE_EMAIL_API_TOKEN` and `CLOUDFLARE_EMAIL_ACCOUNT_ID` yourself and leave the Worker values
+unset. The token needs Cloudflare Email Sending permission, and the sender domain must be verified
+with Cloudflare Email Service. Never pass these credentials in message arguments.
 
 ## Send and retain history
 
