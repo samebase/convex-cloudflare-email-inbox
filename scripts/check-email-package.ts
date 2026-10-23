@@ -96,4 +96,9 @@ const entry = await import(
 );
 assert.equal(typeof entry.inbox, "function");
 assert.equal(typeof entry.default.pipe, "function");
+const provisioning = await import(
+  pathToFileURL(require.resolve("@samebase/convex-cloudflare-email-inbox/alchemy")).href
+);
+assert.equal(typeof provisioning.EmailInbox, "function");
+assert.throws(() => require.resolve("@samebase/alchemy-convex"), { code: "MODULE_NOT_FOUND" });
 console.log(`Packed consumer passed. Artifacts retained at ${temporaryRoot}`);

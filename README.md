@@ -75,25 +75,26 @@ Licensed under [Apache License 2.0](./LICENSE).
 `apps/mail/alchemy.run.ts` declares the setup around the app: the Convex project with a production
 deploy key, and the inbox from `@samebase/convex-cloudflare-email-inbox/alchemy`. The inbox is its
 own Worker, an Alchemy Worker that the component package ships and Alchemy bundles at deploy time,
-and an R2 bucket, with names that Alchemy generates, the `MAIL_BRIDGE_SECRET` on that Worker and in
-Convex, and `MAIL_WORKER_URL` in Convex. The inbox Worker enables Email Routing on the mail zone and
+and an R2 bucket, with names that Alchemy generates. It also declares the sending domain and creates
+an Email Sending token. The app writes the package's four environment outputs to Convex and passes
+them to its mounted `mail` component. The inbox enables Email Routing on the mail zone and
 points the zone's catch-all rule at itself. The app has no Worker: its Convex deployment serves it,
 and `.github/workflows/deploy.yml` deploys it. Run the `alchemy` commands in `apps/mail`.
 `.github/workflows/infra.yml` runs the stack there: a plan and a drift report on pull requests that
 touch these files, and a deploy on `main`. The state is in Alchemy's Cloudflare state store.
 
-The stack owns wiring, not settings. It declares only values that two sides must share and that
-nobody edits by hand. The settings below stay in the dashboards, where you can read and change
-them.
+The stack owns the mail infrastructure and credentials. Owner access settings stay in the Convex
+dashboard.
 
 ### Credentials
 
 Put `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in `apps/mail/.env` for local runs. The workflow reads
 them and `CONVEX_ACCESS_TOKEN` (a Convex team access token) from repository secrets. Locally, the
 Convex CLI login is enough. The API token needs these permissions: Workers Scripts, Workers R2
-Storage, Account Settings Read, Secrets Store, Email Routing Rules, Zone Read, and DNS. Email
-Routing Rules and DNS edit cover the routing: enabling Email Routing writes the zone's MX and SPF
-records.
+Storage, Account Settings Read, Secrets Store, Email Routing Rules, Zone Read, DNS, Email Sending,
+and account **API Tokens Write**. Email Routing Rules and DNS edit cover the routing: enabling
+Email Routing writes the zone's MX and SPF records. API Tokens Write lets Alchemy create the
+runtime sending token. That token has only Email Sending Write permission for the account.
 
 The deploy workflows read two other repository secrets: `CONVEX_DEPLOY_KEY`, a production deploy
 key, and `CONVEX_PREVIEW_DEPLOY_KEY`, a preview deploy key of the project. The
@@ -102,12 +103,10 @@ of convex-hosting shows how to create them and store them with `gh secret set`.
 
 ### Settings the stack does not touch
 
-| Where                                   | Name                          | Value                                             |
-| --------------------------------------- | ----------------------------- | ------------------------------------------------- |
-| Convex production, and preview defaults | `OWNER_EMAIL`                 | The only email that can sign in                   |
-| Convex production, and preview defaults | `OWNER_SETUP_SECRET`          | The code for the first sign-up                    |
-| Convex production                       | `CLOUDFLARE_EMAIL_API_TOKEN`  | Cloudflare Email Sending token                    |
-| Convex production, and preview defaults | `CLOUDFLARE_EMAIL_ACCOUNT_ID` | Cloudflare account of the verified sending domain |
+| Where                                   | Name                 | Value                           |
+| --------------------------------------- | -------------------- | ------------------------------- |
+| Convex production, and preview defaults | `OWNER_EMAIL`        | The only email that can sign in |
+| Convex production, and preview defaults | `OWNER_SETUP_SECRET` | The code for the first sign-up  |
 
 ### Manual steps
 
@@ -119,7 +118,8 @@ of convex-hosting shows how to create them and store them with `gh secret set`.
 1. Fork the repository. Change the three values at the top of `apps/mail/alchemy.run.ts`.
 2. In `apps/mail`, create the Alchemy state store once for each Cloudflare account:
    `npx alchemy provider cloudflare bootstrap`.
-3. In `apps/mail`, run `npx alchemy deploy --stage prod`.
+3. In `apps/mail`, run `npx alchemy plan --stage prod`, then `npx alchemy deploy --stage prod`.
+   If the sending domain already exists, review the adoption plan and use `--adopt` on deployment.
 4. Do the manual steps.
 5. Push once to `main`. `.github/workflows/deploy.yml` then deploys Convex and the app.
 
@@ -128,3 +128,18 @@ inbox Worker and bucket names from the stack name, so they need no change. The a
 names its mail domain `json.md` in `apps/mail/convex/bootstrap.ts` and
 `apps/mail/src/components/mail/MailWorkspace.tsx`. For a different zone, change the domain in these
 two files.
+
+### Existing Mail stack
+
+The package now returns environment values instead of writing to Convex itself. The reference app
+keeps its existing Convex provider and environment resource IDs, so this change does not migrate
+the deployment provider or replace the receiving Worker and bucket. It adds a sending domain
+resource and a sending token, then sets `CLOUDFLARE_EMAIL_API_TOKEN` and
+`CLOUDFLARE_EMAIL_ACCOUNT_ID` from their outputs.
+
+Before the first deployment, give the provisioning token Email Sending and account API Tokens
+Write permission. The existing `json.md` sending registration needs explicit adoption. Review
+`npx alchemy plan --stage prod --adopt` and deploy through the infra workflow's `adopt` input.
+The old manually configured sending token is not revoked by this change; revoke it after checking
+delivery with the new token. Removing the stack revokes its generated token but retains the
+shared sending domain and routing. Stored mail stays unless `DESTROY_APP` is `true`.
