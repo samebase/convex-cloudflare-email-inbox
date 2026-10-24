@@ -178,7 +178,10 @@ if (import.meta.main) {
       const drift = yield* Alchemist.Drift.inspect(stack);
       if (Alchemist.Drift.hasDrift(drift)) {
         throw new Error(
-          "Mail has infrastructure drift. Review it before cutover; no repair was run.",
+          `Mail has infrastructure drift: ${drift.resources
+            .filter((resource) => resource.status !== "in-sync")
+            .map((resource) => `${resource.fqn} (${resource.status})`)
+            .join(", ")}. Review it before cutover; no repair was run.`,
         );
       }
       const plan = yield* Alchemist.Stack.plan({
