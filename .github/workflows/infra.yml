@@ -8,7 +8,7 @@
 # Pull request: a plan, read-only, as a check. Push to main: a deploy. Both
 # compare against the live providers (--detect-drift), so a deleted key or a
 # changed setting is repaired, not only a changed run file. The state is
-# Alchemy's Cloudflare state store.
+# the Convex team's alchemy-state project, which Samebase reads.
 name: infra
 
 on:
@@ -16,6 +16,7 @@ on:
     paths:
       - apps/mail/alchemy.run.ts
       - apps/mail/package.json
+      - apps/mail/scripts/migrate-alchemy-state.ts
       - packages/convex-cloudflare-email-inbox/src/**
       - packages/convex-cloudflare-email-inbox/scripts/build.ts
       - packages/convex-cloudflare-email-inbox/package.json
@@ -26,6 +27,7 @@ on:
     paths:
       - apps/mail/alchemy.run.ts
       - apps/mail/package.json
+      - apps/mail/scripts/migrate-alchemy-state.ts
       - packages/convex-cloudflare-email-inbox/src/**
       - packages/convex-cloudflare-email-inbox/scripts/build.ts
       - packages/convex-cloudflare-email-inbox/package.json
@@ -33,6 +35,10 @@ on:
       - .github/workflows/infra.yml
   workflow_dispatch:
     inputs:
+      migrate_state:
+        description: Copy the existing SamebaseMail production state to Convex, then plan without deploying
+        type: boolean
+        default: false
       adopt:
         description: Adopt resources that exist but are not in state yet
         type: boolean
@@ -59,7 +65,7 @@ env:
 jobs:
   plan:
     # Forks get no secrets, so the authenticated plan cannot run for them.
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
+    if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) || inputs.migrate_state
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -72,14 +78,19 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       # The stack imports EmailInbox from the built component package.
       - run: pnpm --filter @samebase/convex-cloudflare-email-inbox build
-      - run: npx alchemy plan --stage prod --adopt --no-input --detailed
+      - if: inputs.migrate_state
+        run: node scripts/migrate-alchemy-state.ts --apply
+        working-directory: apps/mail
+      - if: ${{ !inputs.migrate_state }}
+        run: npx alchemy plan --stage prod --adopt --no-input --detailed
         working-directory: apps/mail
       # Read-only: reports resources that changed outside the stack.
-      - run: npx alchemy drift --stage prod --no-input
+      - if: ${{ !inputs.migrate_state }}
+        run: npx alchemy drift --stage prod --no-input
         working-directory: apps/mail
 
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && !inputs.migrate_state
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -92,5 +103,10 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       # The stack imports EmailInbox from the built component package.
       - run: pnpm --filter @samebase/convex-cloudflare-email-inbox build
-      - run: npx alchemy deploy --stage prod --yes --no-input --detect-drift ${{ inputs.adopt && '--adopt' || '' }}
+      - id: cutover
+        if: github.repository == 'samebase/convex-cloudflare-email-inbox'
+        run: node scripts/migrate-alchemy-state.ts --cutover
+        working-directory: apps/mail
+      - if: steps.cutover.outputs.applied != 'true'
+        run: npx alchemy deploy --stage prod --yes --no-input --detect-drift ${{ inputs.adopt && '--adopt' || '' }}
         working-directory: apps/mail

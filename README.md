@@ -81,7 +81,14 @@ them to its mounted `mail` component. The inbox enables Email Routing on the mai
 points the zone's catch-all rule at itself. The app has no Worker: its Convex deployment serves it,
 and `.github/workflows/deploy.yml` deploys it. Run the `alchemy` commands in `apps/mail`.
 `.github/workflows/infra.yml` runs the stack there: a plan and a drift report on pull requests that
-touch these files, and a deploy on `main`. The state is in Alchemy's Cloudflare state store.
+touch these files, and a deploy on `main`. `Convex.state({ team })` stores the state in the team's
+`alchemy-state` project. Samebase finds the stack by its repository and app path,
+`samebase/convex-cloudflare-email-inbox/apps/mail`, and reads the run record and resources there.
+
+The app uses `@samebase/alchemy-convex` 0.8 for state storage and its 0.2 release through the
+`@samebase/alchemy-convex-resources` alias for the existing project, deploy key, and environment
+variables. Version 0.8 removed the last two resource APIs. Keeping their provider preserves their
+state and credentials while the state store moves. Both packages use the same Alchemy engine.
 
 The stack owns the mail infrastructure and credentials. Owner access settings stay in the Convex
 dashboard.
@@ -115,13 +122,13 @@ of convex-hosting shows how to create them and store them with `gh secret set`.
 
 ### Fresh install
 
-1. Fork the repository. Change the three values at the top of `apps/mail/alchemy.run.ts`.
-2. In `apps/mail`, create the Alchemy state store once for each Cloudflare account:
-   `npx alchemy provider cloudflare bootstrap`.
-3. In `apps/mail`, run `npx alchemy plan --stage prod`, then `npx alchemy deploy --stage prod`.
+1. Fork the repository. Change the three values at the top of `apps/mail/alchemy.run.ts` and the
+   stack name to `<owner>/<repository>/apps/mail`. Forks skip Mail's migration step automatically.
+2. In `apps/mail`, run `npx alchemy plan --stage prod`, then `npx alchemy deploy --stage prod`.
+   The state provider creates the team's `alchemy-state` project on first use.
    If the sending domain already exists, review the adoption plan and use `--adopt` on deployment.
-4. Do the manual steps.
-5. Push once to `main`. `.github/workflows/deploy.yml` then deploys Convex and the app.
+3. Do the manual steps.
+4. Push once to `main`. `.github/workflows/deploy.yml` then deploys Convex and the app.
 
 A second install in the same account needs a new stack name. Alchemy generates the
 inbox Worker and bucket names from the stack name, so they need no change. The app
@@ -131,15 +138,40 @@ two files.
 
 ### Existing Mail stack
 
+Before the first deploy from Convex state, run the infra workflow on the migration branch with
+`migrate_state: true`. This copies only `SamebaseMail/prod` from Cloudflare into the new stack name,
+verifies every complete resource record and the output, then runs plan and drift. It does not
+deploy resources or remove the source state. The workflow uses the same concurrency group as
+deploys. A retry can finish matching partial state; a different destination record stops the copy.
+Copying on `main` is blocked. The first `main` deploy checks the source and destination again,
+rejects cloud configuration drift, and applies the exact checked plan. An incomplete copy or a later legacy deploy
+stops cutover. A partial cutover also stops automatic retries for manual review.
+
+The cutover plan rejects creates, replacements, deletes, orphaned resources, adoptions, and stack
+actions. Only the inbox Worker, sending token, and dependent Convex token variable may update. The Worker changes its stack tag and
+binding but keeps its deployed name. The bucket also keeps its name. The token changes its display
+name in place; its ID and secret stay the same. The migration logs only counts, never state or
+credentials. Do not run the copy again after cutover.
+
+Alchemy beta83 observes the sending domain's `previewEnabled` field, which beta80 did not store.
+The cutover accepts only that newly observed boolean when every old attribute still matches and
+the setting is not configured. It refreshes that target state record without changing Cloudflare.
+
+The copy run is visible in Samebase before the first deployment and points to the migration branch.
+Only a successful full deployment writes the `main` run record. Later deploys recognize that record
+and use the normal Alchemy deployment flow. Production deployment is restricted to `main`.
+After the first successful cutover, remove the one-time migration script, tests, workflow input,
+and cutover step. Do not deploy production from a laptop until that cleanup is merged. If cutover
+partially fails, inspect the changed resources before removing the guard and using Alchemy's normal
+deployment recovery; never overwrite the changed target from the retained source.
+
 The package now returns environment values instead of writing to Convex itself. The reference app
 keeps its existing Convex provider and environment resource IDs, so this change does not migrate
 the deployment provider or replace the receiving Worker and bucket. It adds a sending domain
 resource and a sending token, then sets `CLOUDFLARE_EMAIL_API_TOKEN` and
 `CLOUDFLARE_EMAIL_ACCOUNT_ID` from their outputs.
 
-Before the first deployment, give the provisioning token Email Sending and account API Tokens
-Write permission. The existing `json.md` sending registration needs explicit adoption. Review
-`npx alchemy plan --stage prod --adopt` and deploy through the infra workflow's `adopt` input.
-The old manually configured sending token is not revoked by this change; revoke it after checking
-delivery with the new token. Removing the stack revokes its generated token but retains the
-shared sending domain and routing. Stored mail stays unless `DESTROY_APP` is `true`.
+The provisioning token already has Email Sending and account API Tokens Write permission, and the
+`json.md` sending registration is already managed. No adoption is needed for this migration.
+Removing the stack revokes its generated token but retains the shared sending domain and routing.
+Stored mail stays unless `DESTROY_APP` is `true`.
