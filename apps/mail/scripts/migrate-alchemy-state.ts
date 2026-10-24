@@ -142,13 +142,17 @@ export function checkCutoverPlan(
 }
 
 /** Beta83 observes previewEnabled; beta80 did not store it or configure it. */
-export function sendingDomainSchemaUpdate(props: unknown, expected: unknown, actual: unknown) {
+export function sendingDomainSchemaUpdate(
+  storedProps: unknown,
+  expected: unknown,
+  actual: unknown,
+) {
   const fields = z.record(z.string(), z.unknown());
   const previous = fields.parse(expected);
   const observed = fields.parse(actual);
   const { previewEnabled, ...rest } = observed;
   if (
-    !("previewEnabled" in fields.parse(props)) &&
+    !("previewEnabled" in fields.parse(storedProps)) &&
     !("previewEnabled" in previous) &&
     typeof previewEnabled === "boolean" &&
     deepEqual(rest, previous)
@@ -195,6 +199,7 @@ if (import.meta.main) {
 
       const stack = { entrypoint: "alchemy.run.ts", stage: "prod" };
       const drift = yield* Alchemist.Drift.inspect(stack);
+      const schemaUpdates: Array<Parameters<StateService["set"]>[0]> = [];
       for (const resource of drift.resources.filter((resource) => resource.status !== "in-sync")) {
         const node = drift.repairPlan.native.resources[resource.fqn];
         if (
@@ -211,20 +216,21 @@ if (import.meta.main) {
           );
           if (attr) {
             console.log("Mail/SendingDomain: only the new previewEnabled observation was added.");
-            if (cutover) {
-              // Refresh the target schema only. Do not change Cloudflare or the retained source.
-              yield* target.set({
-                ...targetAddress,
-                fqn: resource.fqn,
-                value: { ...node.state, attr },
-              });
-            }
+            schemaUpdates.push({
+              ...targetAddress,
+              fqn: resource.fqn,
+              value: { ...node.state, attr },
+            });
             continue;
           }
         }
         throw new Error(
           `Mail has infrastructure drift: ${resource.fqn} (${resource.status}). Review it before cutover; no repair was run.`,
         );
+      }
+      if (cutover) {
+        // Check all drift before refreshing target schema. Cloudflare and the source stay unchanged.
+        for (const update of schemaUpdates) yield* target.set(update);
       }
       const plan = yield* Alchemist.Stack.plan({
         target: stack,
