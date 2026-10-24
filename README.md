@@ -123,8 +123,7 @@ of convex-hosting shows how to create them and store them with `gh secret set`.
 ### Fresh install
 
 1. Fork the repository. Change the three values at the top of `apps/mail/alchemy.run.ts` and the
-   stack name to `<owner>/<repository>/apps/mail`. Remove the Mail-specific `cutover` step and the
-   `steps.cutover.outputs.applied` condition from the infra workflow's deploy job.
+   stack name to `<owner>/<repository>/apps/mail`. Forks skip Mail's migration step automatically.
 2. In `apps/mail`, run `npx alchemy plan --stage prod`, then `npx alchemy deploy --stage prod`.
    The state provider creates the team's `alchemy-state` project on first use.
    If the sending domain already exists, review the adoption plan and use `--adopt` on deployment.
@@ -157,6 +156,10 @@ credentials. Do not run the copy again after cutover.
 The copy run is visible in Samebase before the first deployment and points to the migration branch.
 Only a successful full deployment writes the `main` run record. Later deploys recognize that record
 and use the normal Alchemy deployment flow. Production deployment is restricted to `main`.
+After the first successful cutover, remove the one-time migration script, tests, workflow input,
+and cutover step. Do not deploy production from a laptop until that cleanup is merged. If cutover
+partially fails, inspect the changed resources before removing the guard and using Alchemy's normal
+deployment recovery; never overwrite the changed target from the retained source.
 
 The package now returns environment values instead of writing to Convex itself. The reference app
 keeps its existing Convex provider and environment resource IDs, so this change does not migrate

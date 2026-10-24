@@ -104,6 +104,7 @@ jobs:
       # The stack imports EmailInbox from the built component package.
       - run: pnpm --filter @samebase/convex-cloudflare-email-inbox build
       - id: cutover
+        if: github.repository == 'samebase/convex-cloudflare-email-inbox'
         run: node scripts/migrate-alchemy-state.ts --cutover
         working-directory: apps/mail
       - if: steps.cutover.outputs.applied != 'true'
