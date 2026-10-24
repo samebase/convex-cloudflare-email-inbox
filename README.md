@@ -81,7 +81,14 @@ them to its mounted `mail` component. The inbox enables Email Routing on the mai
 points the zone's catch-all rule at itself. The app has no Worker: its Convex deployment serves it,
 and `.github/workflows/deploy.yml` deploys it. Run the `alchemy` commands in `apps/mail`.
 `.github/workflows/infra.yml` runs the stack there: a plan and a drift report on pull requests that
-touch these files, and a deploy on `main`. The state is in Alchemy's Cloudflare state store.
+touch these files, and a deploy on `main`. `Convex.state({ team })` stores the state in the team's
+`alchemy-state` project. Samebase finds the stack by its repository and app path,
+`samebase/convex-cloudflare-email-inbox/apps/mail`, and reads the run record and resources there.
+
+The app uses `@samebase/alchemy-convex` 0.8 for state storage and its 0.2 release through the
+`@samebase/alchemy-convex-resources` alias for the existing project, deploy key, and environment
+variables. Version 0.8 removed the last two resource APIs. Keeping their provider preserves their
+state and credentials while the state store moves. Both packages use the same Alchemy engine.
 
 The stack owns the mail infrastructure and credentials. Owner access settings stay in the Convex
 dashboard.
@@ -115,13 +122,13 @@ of convex-hosting shows how to create them and store them with `gh secret set`.
 
 ### Fresh install
 
-1. Fork the repository. Change the three values at the top of `apps/mail/alchemy.run.ts`.
-2. In `apps/mail`, create the Alchemy state store once for each Cloudflare account:
-   `npx alchemy provider cloudflare bootstrap`.
-3. In `apps/mail`, run `npx alchemy plan --stage prod`, then `npx alchemy deploy --stage prod`.
+1. Fork the repository. Change the three values at the top of `apps/mail/alchemy.run.ts` and the
+   stack name to `<owner>/<repository>/apps/mail`.
+2. In `apps/mail`, run `npx alchemy plan --stage prod`, then `npx alchemy deploy --stage prod`.
+   The state provider creates the team's `alchemy-state` project on first use.
    If the sending domain already exists, review the adoption plan and use `--adopt` on deployment.
-4. Do the manual steps.
-5. Push once to `main`. `.github/workflows/deploy.yml` then deploys Convex and the app.
+3. Do the manual steps.
+4. Push once to `main`. `.github/workflows/deploy.yml` then deploys Convex and the app.
 
 A second install in the same account needs a new stack name. Alchemy generates the
 inbox Worker and bucket names from the stack name, so they need no change. The app
@@ -130,6 +137,18 @@ names its mail domain `json.md` in `apps/mail/convex/bootstrap.ts` and
 two files.
 
 ### Existing Mail stack
+
+Before the first deploy from Convex state, run the infra workflow on the migration branch with
+`migrate_state: true`. This copies only `SamebaseMail/prod` from Cloudflare into the new stack name,
+verifies every complete resource record and the output, then runs plan and drift. It does not
+deploy resources or remove the source state. The workflow uses the same concurrency group as
+deploys. A retry can finish matching partial state; a different destination record stops the copy.
+Do not run a legacy deployment between the copy and the first deploy from the new stack.
+
+Review the resulting plan before deployment: no creates, replacements, or deletes are expected.
+The Worker and bucket keep their deployed names. The sending token can change its display name
+in place; its ID and secret stay the same. The migration script logs only counts, never state or
+credentials. Do not run it again after the new stack has deployed and changed its state.
 
 The package now returns environment values instead of writing to Convex itself. The reference app
 keeps its existing Convex provider and environment resource IDs, so this change does not migrate

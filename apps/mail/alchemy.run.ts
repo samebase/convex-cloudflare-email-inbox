@@ -18,7 +18,9 @@
 //   npx alchemy plan --stage prod
 //
 // A fork changes the three values below.
-import * as Convex from "@samebase/alchemy-convex";
+import { state } from "@samebase/alchemy-convex";
+// These resources still own the existing key and environment variables.
+import * as Convex from "@samebase/alchemy-convex-resources";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
@@ -34,12 +36,11 @@ const CONVEX_PROJECT = "mail";
 const MAIL_ZONE = "json.md";
 
 export default Alchemy.Stack(
-  "SamebaseMail",
+  "samebase/convex-cloudflare-email-inbox/apps/mail",
   {
     providers: Layer.mergeAll(Cloudflare.providers(), Convex.providers()),
-    // State lives in the Cloudflare state store (an encrypted Durable Object in
-    // the account), so the laptop and .github/workflows/infra.yml share it.
-    state: Cloudflare.state(),
+    // Samebase reads this team's alchemy-state project and the repository's run record.
+    state: state({ team: CONVEX_TEAM }),
   },
   Effect.gen(function* () {
     // Found by name when it has no state, then by id. A delete of the
