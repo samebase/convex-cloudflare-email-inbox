@@ -72,7 +72,7 @@
   },
   "dependencies": {
     "cloudflare": "7.2.0",
-    "convex-helpers": "0.1.127",
+    "convex-helpers": "0.1.129",
     "mimetext": "^3.0.28",
     "postal-mime": "^4.0.8",
     "zod": "^4.6.6"
