@@ -123,7 +123,8 @@ of convex-hosting shows how to create them and store them with `gh secret set`.
 ### Fresh install
 
 1. Fork the repository. Change the three values at the top of `apps/mail/alchemy.run.ts` and the
-   stack name to `<owner>/<repository>/apps/mail`.
+   stack name to `<owner>/<repository>/apps/mail`. Remove the Mail-specific `cutover` step and the
+   `steps.cutover.outputs.applied` condition from the infra workflow's deploy job.
 2. In `apps/mail`, run `npx alchemy plan --stage prod`, then `npx alchemy deploy --stage prod`.
    The state provider creates the team's `alchemy-state` project on first use.
    If the sending domain already exists, review the adoption plan and use `--adopt` on deployment.
@@ -143,12 +144,19 @@ Before the first deploy from Convex state, run the infra workflow on the migrati
 verifies every complete resource record and the output, then runs plan and drift. It does not
 deploy resources or remove the source state. The workflow uses the same concurrency group as
 deploys. A retry can finish matching partial state; a different destination record stops the copy.
-Do not run a legacy deployment between the copy and the first deploy from the new stack.
+Copying on `main` is blocked. The first `main` deploy checks the source and destination again,
+requires no drift, and applies the exact checked plan. An incomplete copy or a later legacy deploy
+stops cutover. A partial cutover also stops automatic retries for manual review.
 
-Review the resulting plan before deployment: no creates, replacements, or deletes are expected.
-The Worker and bucket keep their deployed names. The sending token can change its display name
-in place; its ID and secret stay the same. The migration script logs only counts, never state or
-credentials. Do not run it again after the new stack has deployed and changed its state.
+The cutover plan rejects creates, replacements, deletes, orphaned resources, adoptions, and stack
+actions. Only the inbox Worker and sending token may update. The Worker changes its stack tag and
+binding but keeps its deployed name. The bucket also keeps its name. The token changes its display
+name in place; its ID and secret stay the same. The migration logs only counts, never state or
+credentials. Do not run the copy again after cutover.
+
+The copy run is visible in Samebase before the first deployment and points to the migration branch.
+Only a successful full deployment writes the `main` run record. Later deploys recognize that record
+and use the normal Alchemy deployment flow. Production deployment is restricted to `main`.
 
 The package now returns environment values instead of writing to Convex itself. The reference app
 keeps its existing Convex provider and environment resource IDs, so this change does not migrate
@@ -156,9 +164,7 @@ the deployment provider or replace the receiving Worker and bucket. It adds a se
 resource and a sending token, then sets `CLOUDFLARE_EMAIL_API_TOKEN` and
 `CLOUDFLARE_EMAIL_ACCOUNT_ID` from their outputs.
 
-Before the first deployment, give the provisioning token Email Sending and account API Tokens
-Write permission. The existing `json.md` sending registration needs explicit adoption. Review
-`npx alchemy plan --stage prod --adopt` and deploy through the infra workflow's `adopt` input.
-The old manually configured sending token is not revoked by this change; revoke it after checking
-delivery with the new token. Removing the stack revokes its generated token but retains the
-shared sending domain and routing. Stored mail stays unless `DESTROY_APP` is `true`.
+The provisioning token already has Email Sending and account API Tokens Write permission, and the
+`json.md` sending registration is already managed. No adoption is needed for this migration.
+Removing the stack revokes its generated token but retains the shared sending domain and routing.
+Stored mail stays unless `DESTROY_APP` is `true`.

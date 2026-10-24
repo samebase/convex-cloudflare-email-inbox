@@ -81,14 +81,16 @@ jobs:
       - if: inputs.migrate_state
         run: node scripts/migrate-alchemy-state.ts --apply
         working-directory: apps/mail
-      - run: npx alchemy plan --stage prod --adopt --no-input --detailed
+      - if: ${{ !inputs.migrate_state }}
+        run: npx alchemy plan --stage prod --adopt --no-input --detailed
         working-directory: apps/mail
       # Read-only: reports resources that changed outside the stack.
-      - run: npx alchemy drift --stage prod --no-input
+      - if: ${{ !inputs.migrate_state }}
+        run: npx alchemy drift --stage prod --no-input
         working-directory: apps/mail
 
   deploy:
-    if: github.event_name != 'pull_request' && !inputs.migrate_state
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && !inputs.migrate_state
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -101,5 +103,9 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       # The stack imports EmailInbox from the built component package.
       - run: pnpm --filter @samebase/convex-cloudflare-email-inbox build
-      - run: npx alchemy deploy --stage prod --yes --no-input --detect-drift ${{ inputs.adopt && '--adopt' || '' }}
+      - id: cutover
+        run: node scripts/migrate-alchemy-state.ts --cutover
+        working-directory: apps/mail
+      - if: steps.cutover.outputs.applied != 'true'
+        run: npx alchemy deploy --stage prod --yes --no-input --detect-drift ${{ inputs.adopt && '--adopt' || '' }}
         working-directory: apps/mail
