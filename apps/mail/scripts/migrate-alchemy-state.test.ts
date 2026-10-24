@@ -8,7 +8,11 @@ import {
 import * as Effect from "effect/Effect";
 import * as Redacted from "effect/Redacted";
 import { describe, expect, it } from "vitest";
-import { checkCutoverPlan, copyMailState } from "./migrate-alchemy-state.ts";
+import {
+  checkCutoverPlan,
+  copyMailState,
+  sendingDomainSchemaUpdate,
+} from "./migrate-alchemy-state.ts";
 
 function wireCopy<T>(value: T): T {
   const restored: unknown = JSON.parse(JSON.stringify(encodeState(value)), reviveState);
@@ -42,6 +46,24 @@ const sourceStore = () =>
   );
 
 describe("Mail state migration", () => {
+  it("accepts only the new observed preview field and rejects configuration or identity drift", () => {
+    const props = { name: "example.com", zoneId: "zone" };
+    const expected = { subdomainId: "domain", ...props, enabled: true };
+    const actual = { ...expected, previewEnabled: true };
+    expect(sendingDomainSchemaUpdate(props, expected, actual)).toEqual(actual);
+    expect(
+      sendingDomainSchemaUpdate(props, expected, { ...actual, subdomainId: "changed" }),
+    ).toBeUndefined();
+    expect(
+      sendingDomainSchemaUpdate(props, expected, { ...actual, enabled: false }),
+    ).toBeUndefined();
+    expect(
+      sendingDomainSchemaUpdate({ ...props, previewEnabled: false }, expected, actual),
+    ).toBeUndefined();
+    expect(
+      sendingDomainSchemaUpdate(props, { ...expected, previewEnabled: false }, actual),
+    ).toBeUndefined();
+  });
   it("copies complete records and output, preserves the source and other stacks, and can run again", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {

@@ -144,14 +144,18 @@ verifies every complete resource record and the output, then runs plan and drift
 deploy resources or remove the source state. The workflow uses the same concurrency group as
 deploys. A retry can finish matching partial state; a different destination record stops the copy.
 Copying on `main` is blocked. The first `main` deploy checks the source and destination again,
-requires no drift, and applies the exact checked plan. An incomplete copy or a later legacy deploy
+rejects cloud configuration drift, and applies the exact checked plan. An incomplete copy or a later legacy deploy
 stops cutover. A partial cutover also stops automatic retries for manual review.
 
 The cutover plan rejects creates, replacements, deletes, orphaned resources, adoptions, and stack
-actions. Only the inbox Worker and sending token may update. The Worker changes its stack tag and
+actions. Only the inbox Worker, sending token, and dependent Convex token variable may update. The Worker changes its stack tag and
 binding but keeps its deployed name. The bucket also keeps its name. The token changes its display
 name in place; its ID and secret stay the same. The migration logs only counts, never state or
 credentials. Do not run the copy again after cutover.
+
+Alchemy beta83 observes the sending domain's `previewEnabled` field, which beta80 did not store.
+The cutover accepts only that newly observed boolean when every old attribute still matches and
+the setting is not configured. It refreshes that target state record without changing Cloudflare.
 
 The copy run is visible in Samebase before the first deployment and points to the migration branch.
 Only a successful full deployment writes the `main` run record. Later deploys recognize that record

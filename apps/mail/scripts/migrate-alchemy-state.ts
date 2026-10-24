@@ -2,6 +2,7 @@ import { appendFile } from "node:fs/promises";
 import { isDeepStrictEqual } from "node:util";
 import * as Convex from "@samebase/alchemy-convex";
 import * as Alchemist from "alchemy/Alchemist";
+import { deepEqual } from "alchemy/Diff";
 import { encodeState, State, type StateService } from "alchemy/State";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -129,7 +130,8 @@ export function checkCutoverPlan(
     if (
       resource.action === "update" &&
       resource.fqn !== "Mail/Inbox" &&
-      resource.fqn !== "Mail/SendingToken"
+      resource.fqn !== "Mail/SendingToken" &&
+      resource.fqn !== "Mail/ConvexSendingToken"
     ) {
       throw new Error(`Unexpected cutover update: ${resource.fqn}. Review it before deployment.`);
     }
@@ -137,6 +139,23 @@ export function checkCutoverPlan(
   if (plan.actions.some((action) => action.action !== "noop")) {
     throw new Error("Cutover must not run or delete stack actions.");
   }
+}
+
+/** Beta83 observes previewEnabled; beta80 did not store it or configure it. */
+export function sendingDomainSchemaUpdate(props: unknown, expected: unknown, actual: unknown) {
+  const fields = z.record(z.string(), z.unknown());
+  const previous = fields.parse(expected);
+  const observed = fields.parse(actual);
+  const { previewEnabled, ...rest } = observed;
+  if (
+    !("previewEnabled" in fields.parse(props)) &&
+    !("previewEnabled" in previous) &&
+    typeof previewEnabled === "boolean" &&
+    deepEqual(rest, previous)
+  ) {
+    return observed;
+  }
+  return undefined;
 }
 
 if (import.meta.main) {
@@ -176,12 +195,35 @@ if (import.meta.main) {
 
       const stack = { entrypoint: "alchemy.run.ts", stage: "prod" };
       const drift = yield* Alchemist.Drift.inspect(stack);
-      if (Alchemist.Drift.hasDrift(drift)) {
+      for (const resource of drift.resources.filter((resource) => resource.status !== "in-sync")) {
+        const node = drift.repairPlan.native.resources[resource.fqn];
+        if (
+          resource.fqn === "Mail/SendingDomain" &&
+          resource.resourceType === "Cloudflare.Email.SendingSubdomain" &&
+          resource.status === "drifted" &&
+          node?.action === "update" &&
+          node.drift
+        ) {
+          const attr = sendingDomainSchemaUpdate(
+            node.props,
+            node.drift.expected,
+            node.drift.actual,
+          );
+          if (attr) {
+            console.log("Mail/SendingDomain: only the new previewEnabled observation was added.");
+            if (cutover) {
+              // Refresh the target schema only. Do not change Cloudflare or the retained source.
+              yield* target.set({
+                ...targetAddress,
+                fqn: resource.fqn,
+                value: { ...node.state, attr },
+              });
+            }
+            continue;
+          }
+        }
         throw new Error(
-          `Mail has infrastructure drift: ${drift.resources
-            .filter((resource) => resource.status !== "in-sync")
-            .map((resource) => `${resource.fqn} (${resource.status})`)
-            .join(", ")}. Review it before cutover; no repair was run.`,
+          `Mail has infrastructure drift: ${resource.fqn} (${resource.status}). Review it before cutover; no repair was run.`,
         );
       }
       const plan = yield* Alchemist.Stack.plan({
