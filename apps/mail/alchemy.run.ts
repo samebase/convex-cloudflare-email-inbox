@@ -1,5 +1,5 @@
-// Setup stack for Mail. It declares the Convex project, a production deploy
-// key, and the inbox of the component
+// Setup stack for Mail. It declares the Convex project, its production deployment,
+// a deploy key, and the inbox of the component
 // (@samebase/convex-cloudflare-email-inbox/alchemy): the Worker that receives
 // mail, which the component ships and Alchemy bundles here, its R2 bucket,
 // its sending domain and token, and the values that Worker and Convex share.
@@ -18,14 +18,14 @@
 //   npx alchemy plan --stage prod
 //
 // A fork changes the three values below.
-import { state } from "@samebase/alchemy-convex";
+import { Deployment, providers, state } from "@samebase/alchemy-convex";
 // These resources still own the existing key and environment variables.
 import * as Convex from "@samebase/alchemy-convex-resources";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as Namespace from "alchemy/Namespace";
-import * as Output from "alchemy/Output";
+import * as Provider from "alchemy/Provider";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 
@@ -38,7 +38,14 @@ const MAIL_ZONE = "json.md";
 export default Alchemy.Stack(
   "samebase/convex-cloudflare-email-inbox/apps/mail",
   {
-    providers: Layer.mergeAll(Cloudflare.providers(), Convex.providers()),
+    providers: Layer.mergeAll(
+      Cloudflare.providers(),
+      Convex.providers(),
+      // Both releases use the Convex collection key. Add only the modern deployment provider.
+      Provider.effect(Deployment, Provider.findProvider(Deployment)).pipe(
+        Layer.provide(providers()),
+      ),
+    ),
     // Samebase reads this team's alchemy-state project and the repository's run record.
     state: state({ team: CONVEX_TEAM }),
   },
@@ -51,7 +58,12 @@ export default Alchemy.Stack(
       team: CONVEX_TEAM,
       name: CONVEX_PROJECT,
     }).pipe(Alchemy.RemovalPolicy.retain());
-    const deployment = project.prodDeploymentName.as<string>();
+    // The existing deployment has code, so adoption is explicit. Hosting still deploys it.
+    const production = yield* Deployment("Deployment", {
+      project: { projectId: project.projectId },
+      type: "prod",
+    }).pipe(Alchemy.AdoptPolicy.adopt());
+    const deployment = production.name;
 
     // Convex lists each key under its name plus a hash of the resource, such
     // as "workers-builds-3f2a1b0c9d8e". A key cannot change, so a changed prop
@@ -74,17 +86,7 @@ export default Alchemy.Stack(
       ],
     });
 
-    // Convex serves HTTP actions at the .convex.site twin of the deployment
-    // URL. The inbox Worker posts inbound mail there, and the app is served
-    // there too.
-    const convexSiteUrl = project.prodDeploymentUrl.pipe(
-      Output.map((url) => {
-        if (!url) {
-          throw new Error(`The Convex project ${CONVEX_PROJECT} has no production deployment.`);
-        }
-        return url.replace(/\.convex\.cloud$/, ".convex.site");
-      }),
-    );
+    const convexSiteUrl = production.siteUrl;
     const inbox = yield* EmailInbox("Mail", {
       convexSiteUrl,
       zone: MAIL_ZONE,

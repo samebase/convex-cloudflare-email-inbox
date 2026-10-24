@@ -72,8 +72,8 @@ Licensed under [Apache License 2.0](./LICENSE).
 
 ## Setup stack
 
-`apps/mail/alchemy.run.ts` declares the setup around the app: the Convex project with a production
-deploy key, and the inbox from `@samebase/convex-cloudflare-email-inbox/alchemy`. The inbox is its
+`apps/mail/alchemy.run.ts` declares the setup around the app: the Convex project, its production
+deployment and deploy key, and the inbox from `@samebase/convex-cloudflare-email-inbox/alchemy`. The inbox is its
 own Worker, an Alchemy Worker that the component package ships and Alchemy bundles at deploy time,
 and an R2 bucket, with names that Alchemy generates. It also declares the sending domain and creates
 an Email Sending token. The app writes the package's four environment outputs to Convex and passes
@@ -85,10 +85,15 @@ touch these files, and a deploy on `main`. `Convex.state({ team })` stores the s
 `alchemy-state` project. Samebase finds the stack by its repository and app path,
 `samebase/convex-cloudflare-email-inbox/apps/mail`, and reads the run record and resources there.
 
-The app uses `@samebase/alchemy-convex` 0.8 for state storage and its 0.2 release through the
+The app uses `@samebase/alchemy-convex` 0.8 for state storage and the production deployment, and its 0.2 release through the
 `@samebase/alchemy-convex-resources` alias for the existing project, deploy key, and environment
 variables. Version 0.8 removed the last two resource APIs. Keeping their provider preserves their
 state and credentials. Both packages use the same Alchemy engine.
+
+The `Deployment` resource adopts the project's existing production deployment so Samebase can
+show it. It declares no `source` or `env`: the hosting workflow deploys the code, and the existing
+environment resources manage the component's variables. Its name and site URL also connect the
+inbox and environment resources to that deployment.
 
 The stack owns the mail infrastructure and credentials. Owner access settings stay in the Convex
 dashboard.
