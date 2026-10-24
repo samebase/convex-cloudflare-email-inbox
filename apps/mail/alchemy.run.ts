@@ -18,7 +18,7 @@
 //   npx alchemy plan --stage prod
 //
 // A fork changes the three values below.
-import { Deployment, providers, state } from "@samebase/alchemy-convex";
+import { bindComponent, Deployment, providers, state } from "@samebase/alchemy-convex";
 // These resources still own the existing key and environment variables.
 import * as Convex from "@samebase/alchemy-convex-resources";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
@@ -91,6 +91,12 @@ export default Alchemy.Stack(
       convexSiteUrl,
       zone: MAIL_ZONE,
       sendingDomain: MAIL_ZONE,
+    });
+    // Tells Samebase that the installed component "mail" owns the Mail namespace.
+    yield* bindComponent({
+      deployment: production,
+      component: "mail",
+      namespace: inbox.worker.Namespace,
     });
 
     // Preserve the existing environment resource IDs while the app owns the
