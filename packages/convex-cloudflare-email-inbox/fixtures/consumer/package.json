@@ -5,7 +5,7 @@
   "dependencies": {
     "@types/react": "19.2.14",
     "convex": "1.46.0",
-    "convex-test": "0.0.56",
+    "convex-test": "0.0.65",
     "react": "19.2.6",
     "typescript": "6.0.2",
     "vite": "8.0.16",

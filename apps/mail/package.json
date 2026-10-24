@@ -73,7 +73,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "alchemy": "2.0.0-beta.83",
-    "convex-test": "^0.0.56",
+    "convex-test": "^0.0.65",
     "effect": "^4.0.0",
     "shadcn": "^4.16.1",
     "typescript": "~6.0.2",
