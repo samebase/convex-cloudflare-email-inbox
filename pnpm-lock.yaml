@@ -64,8 +64,8 @@ importers:
         specifier: 0.41.3
         version: 0.41.3
       '@convex-dev/auth':
-        specifier: ^0.0.94
-        version: 0.0.94(@auth/core@0.41.3)(convex@1.48.0(react@19.2.6))(react@19.2.6)
+        specifier: ^0.0.96
+        version: 0.0.96(@auth/core@0.41.3)(convex@1.48.0(react@19.2.6))(react@19.2.6)
       '@samebase/convex-cloudflare-email-inbox':
         specifier: workspace:*
         version: link:../../packages/convex-cloudflare-email-inbox
@@ -546,8 +546,8 @@ packages:
   '@cloudflare/workers-types@5.20261004.1':
     resolution: {integrity: sha512-K9D4/Y6bSIDNYFzjqzFMNoWK99pLgfgFxqSa76kfW++3VCkTSzJbzsQRffir366G3kmNyjoigC6ekp7DxIkxkw==}
 
-  '@convex-dev/auth@0.0.94':
-    resolution: {integrity: sha512-A/ily6mXQFhSOUAYoiVZdzAZj3RBhiU4d2MOqpEByL7Uzzub6Y+MYQCzSTi0hQzE1dv7dVHprFku0lQuiq6A5w==}
+  '@convex-dev/auth@0.0.96':
+    resolution: {integrity: sha512-4vcoQmmlbInLpR6BK43iIH21JwVPG5U7kRIjLaUWkeEr+hVaS/DuYsQRrDsDLu9rbHpq9PT2ZkUrtPDLkxYx0A==}
     hasBin: true
     peerDependencies:
       '@auth/core': ^0.41.1
@@ -5503,7 +5503,7 @@ snapshots:
 
   '@cloudflare/workers-types@5.20261004.1': {}
 
-  '@convex-dev/auth@0.0.94(@auth/core@0.41.3)(convex@1.48.0(react@19.2.6))(react@19.2.6)':
+  '@convex-dev/auth@0.0.96(@auth/core@0.41.3)(convex@1.48.0(react@19.2.6))(react@19.2.6)':
     dependencies:
       '@auth/core': 0.41.3
       '@oslojs/crypto': 1.0.1
