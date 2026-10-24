@@ -126,13 +126,13 @@ importers:
         version: 5.0.0
       '@effect/platform-node':
         specifier: ^4.0.0
-        version: 4.0.0(effect@4.0.0)(redis@6.3.0)
+        version: 4.0.6(effect@4.0.0)(redis@6.3.0)
       '@samebase/alchemy-convex':
         specifier: 0.9.0
-        version: 0.9.0(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(alchemy@2.0.0-beta.83(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0))(convex@1.48.0(react@19.2.6))(effect@4.0.0)
+        version: 0.9.0(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(alchemy@2.0.0-beta.83(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0))(convex@1.48.0(react@19.2.6))(effect@4.0.0)
       '@samebase/alchemy-convex-resources':
         specifier: npm:@samebase/alchemy-convex@0.2.0
-        version: '@samebase/alchemy-convex@0.2.0(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(alchemy@2.0.0-beta.83(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0))(effect@4.0.0)'
+        version: '@samebase/alchemy-convex@0.2.0(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(alchemy@2.0.0-beta.83(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0))(effect@4.0.0)'
       '@tanstack/router-plugin':
         specifier: ^1.168.23
         version: 1.168.23(@tanstack/react-router@1.170.41(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))
@@ -150,7 +150,7 @@ importers:
         version: 6.0.1(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))
       alchemy:
         specifier: 2.0.0-beta.83
-        version: 2.0.0-beta.83(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0)
+        version: 2.0.0-beta.83(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0)
       convex-test:
         specifier: ^0.0.56
         version: 0.0.56(convex@1.48.0(react@19.2.6))
@@ -193,7 +193,7 @@ importers:
     devDependencies:
       alchemy:
         specifier: 2.0.0-beta.83
-        version: 2.0.0-beta.83(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0)
+        version: 2.0.0-beta.83(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0)
       convex:
         specifier: 1.48.0
         version: 1.48.0(react@19.2.6)
@@ -668,17 +668,17 @@ packages:
     resolution: {integrity: sha512-NKBGBSIKUG584qrS1tyxVpX/AKJKQw5HgjYEnPLC0QsTw79JrGn+qUr8CXFb955Iy7GUdiiUv1rJ6JBGvaKb6w==}
     engines: {node: '>=18'}
 
-  '@effect/platform-node-shared@4.0.0':
-    resolution: {integrity: sha512-VBXHJU9UXVZPdQGGDRjGXpo+TpOzRwZuMrdKAtIxi1qwcRftmacZ1zTgIrzBa0Z2RA2KVkoOecQUsTlt/nJZhw==}
+  '@effect/platform-node-shared@4.0.6':
+    resolution: {integrity: sha512-0PhyC4uG30xGtsajnxjkcBWfTjNRzUh4ZKl1Kvo/MNyCTb+W2O+fBzf7wCRCoqt+nLudiq4V7vX40Q8XIBuMaQ==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.0
+      effect: ^4.0.6
 
-  '@effect/platform-node@4.0.0':
-    resolution: {integrity: sha512-/L+4MUbl8FejPKLHLROYSOebvHnfixkP8KiblSD/DE5uH5xENZBHaux4nH6XMnRP+lr8ajpEJFS8sUrmmxFJeQ==}
+  '@effect/platform-node@4.0.6':
+    resolution: {integrity: sha512-gXvGHAy0/8PZbWvMMguloDUyeSP+rzYEo3FSEqUuGduxo9ORcGioDxPI+GOLCIFfam7VuNkmSUxBOiRMIrMrBw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.0
+      effect: ^4.0.6
       redis: '>=5.0.0 <7.0.0'
 
   '@effect/sql-d1@4.0.0':
@@ -5158,7 +5158,7 @@ packages:
 
 snapshots:
 
-  '@alchemy.run/cloudflare-runtime@2.0.0-beta.83(@distilled.cloud/cloudflare@1.0.0-rc.15(effect@4.0.0))(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(rolldown@1.2.5)(typescript@6.0.3)':
+  '@alchemy.run/cloudflare-runtime@2.0.0-beta.83(@distilled.cloud/cloudflare@1.0.0-rc.15(effect@4.0.0))(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(rolldown@1.2.5)(typescript@6.0.3)':
     dependencies:
       '@alchemy.run/node-utils': 2.0.0-beta.83
       '@cloudflare/unenv-preset': 2.16.2(unenv@2.0.0-rc.24)(workerd@1.20261002.1)
@@ -5173,7 +5173,7 @@ snapshots:
       workerd: 1.20261002.1
       yauzl: 3.4.0
     optionalDependencies:
-      '@effect/platform-node': 4.0.0(effect@4.0.0)(redis@6.3.0)
+      '@effect/platform-node': 4.0.6(effect@4.0.0)(redis@6.3.0)
       rolldown: 1.2.5
       vite: '@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1)'
     transitivePeerDependencies:
@@ -5636,7 +5636,7 @@ snapshots:
     dependencies:
       '@edge-runtime/primitives': 6.0.0
 
-  '@effect/platform-node-shared@4.0.0(effect@4.0.0)':
+  '@effect/platform-node-shared@4.0.6(effect@4.0.0)':
     dependencies:
       '@types/ws': 8.18.2
       effect: 4.0.0
@@ -5645,9 +5645,9 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0)':
+  '@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0)':
     dependencies:
-      '@effect/platform-node-shared': 4.0.0(effect@4.0.0)
+      '@effect/platform-node-shared': 4.0.6(effect@4.0.0)
       effect: 4.0.0
       redis: 6.3.0
       undici: 7.29.1
@@ -7172,18 +7172,18 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@samebase/alchemy-convex@0.2.0(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(alchemy@2.0.0-beta.83(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0))(effect@4.0.0)':
+  '@samebase/alchemy-convex@0.2.0(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(alchemy@2.0.0-beta.83(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0))(effect@4.0.0)':
     dependencies:
       '@convex-dev/platform': 0.1.11
-      '@effect/platform-node': 4.0.0(effect@4.0.0)(redis@6.3.0)
-      alchemy: 2.0.0-beta.83(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0)
+      '@effect/platform-node': 4.0.6(effect@4.0.0)(redis@6.3.0)
+      alchemy: 2.0.0-beta.83(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0)
       effect: 4.0.0
 
-  '@samebase/alchemy-convex@0.9.0(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(alchemy@2.0.0-beta.83(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0))(convex@1.48.0(react@19.2.6))(effect@4.0.0)':
+  '@samebase/alchemy-convex@0.9.0(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(alchemy@2.0.0-beta.83(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0))(convex@1.48.0(react@19.2.6))(effect@4.0.0)':
     dependencies:
       '@convex-dev/platform': 0.1.11
-      '@effect/platform-node': 4.0.0(effect@4.0.0)(redis@6.3.0)
-      alchemy: 2.0.0-beta.83(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0)
+      '@effect/platform-node': 4.0.6(effect@4.0.0)(redis@6.3.0)
+      alchemy: 2.0.0-beta.83(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0)
       convex: 1.48.0(react@19.2.6)
       effect: 4.0.0
 
@@ -7805,9 +7805,9 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
-  alchemy@2.0.0-beta.83(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0):
+  alchemy@2.0.0-beta.83(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(hono@4.13.13)(typescript@6.0.3)(ws@8.22.0):
     dependencies:
-      '@alchemy.run/cloudflare-runtime': 2.0.0-beta.83(@distilled.cloud/cloudflare@1.0.0-rc.15(effect@4.0.0))(@effect/platform-node@4.0.0(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(rolldown@1.2.5)(typescript@6.0.3)
+      '@alchemy.run/cloudflare-runtime': 2.0.0-beta.83(@distilled.cloud/cloudflare@1.0.0-rc.15(effect@4.0.0))(@effect/platform-node@4.0.6(effect@4.0.0)(redis@6.3.0))(@types/node@24.13.3)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.0.0)(rolldown@1.2.5)(typescript@6.0.3)
       '@alchemy.run/floci': 2.0.0-beta.83(effect@4.0.0)
       '@alchemy.run/node-utils': 2.0.0-beta.83
       '@alchemy.run/sigil': 0.1.0-alpha.1(@types/react@19.2.14)
@@ -7847,7 +7847,7 @@ snapshots:
       tinyglobby: 0.2.17
       yaml: 2.9.1
     optionalDependencies:
-      '@effect/platform-node': 4.0.0(effect@4.0.0)(redis@6.3.0)
+      '@effect/platform-node': 4.0.6(effect@4.0.0)(redis@6.3.0)
       vite: '@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1)'
       ws: 8.22.0
     transitivePeerDependencies:
