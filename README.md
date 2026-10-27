@@ -85,9 +85,9 @@ touch these files, and a deploy on `main`. `Convex.state({ team })` stores the s
 `alchemy-state` project. Samebase finds the stack by its repository and app path,
 `samebase/convex-cloudflare-email-inbox/apps/mail`, and reads the run record and resources there.
 
-The app uses `@samebase/alchemy-convex` 0.8 for state storage and the production deployment, and its 0.2 release through the
+The app uses `@samebase/alchemy-convex` 0.11 for state storage and the production deployment, and its 0.2 release through the
 `@samebase/alchemy-convex-resources` alias for the existing project, deploy key, and environment
-variables. Version 0.8 removed the last two resource APIs. Keeping their provider preserves their
+variables. Version 0.4 removed the last two resource APIs. Keeping their provider preserves their
 state and credentials. Both packages use the same Alchemy engine.
 
 The `Deployment` resource adopts the project's existing production deployment so Samebase can
