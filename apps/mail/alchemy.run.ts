@@ -23,7 +23,7 @@ import { bindComponent, Deployment, providers, state } from "@samebase/alchemy-c
 import * as Convex from "@samebase/alchemy-convex-resources";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import * as Alchemy from "alchemy";
-import * as Cloudflare from "alchemy/Cloudflare";
+import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Namespace from "alchemy/Namespace";
 import * as Provider from "alchemy/Provider";
 import * as Effect from "effect/Effect";

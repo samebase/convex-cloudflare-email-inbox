@@ -6,8 +6,8 @@ runtime. Sending without attachments does not require a Worker or R2 bucket. Rec
 complete raw email and named attachments in your R2 bucket, with inbox data in your Convex deployment.
 
 There are three imports. `convex.config.js` is the Convex component. `./alchemy` is an Alchemy
-function that provisions sending, receiving, and storage; it needs `alchemy`, `effect`, and
-`@effect/platform-node`. The optional React monitor is the
+function that provisions sending, receiving, and storage; it needs `alchemy`, `@alchemy.run/cloudflare`,
+`effect`, and `@effect/platform-node`. The optional React monitor is the
 `@samebase/convex-cloudflare-email-inbox-ui` package.
 
 ```ts

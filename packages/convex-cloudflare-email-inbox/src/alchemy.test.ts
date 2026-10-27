@@ -1,4 +1,4 @@
-import * as Cloudflare from "alchemy/Cloudflare";
+import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Output from "alchemy/Output";
 import { RandomProvider } from "alchemy/Random";
 import { Stack, type StackSpec } from "alchemy/Stack";

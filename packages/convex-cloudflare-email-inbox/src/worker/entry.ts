@@ -1,6 +1,6 @@
 // The inbox Worker as an Alchemy Worker on the Effect runtime. Email events
 // go to receiveEmail, and GET /api/mail/object goes to downloadObject.
-import * as Cloudflare from "alchemy/Cloudflare";
+import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
