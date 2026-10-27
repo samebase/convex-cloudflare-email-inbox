@@ -14,7 +14,7 @@ overrides:
   '@samebase/alchemy-convex@0.2.0>alchemy': 2.0.0-beta.84
   '@hono/node-server': 2.0.10
   '@samebase/convex-hosting>zod': 4.6.6
-  hono@4.11.4: 4.13.13
+  hono@4.11.4: 4.13.14
   js-yaml: 4.3.2
   lodash@4.17.21: 4.18.1
   nanoid: 3.3.18
@@ -95,7 +95,7 @@ importers:
         version: 1.48.0(react@19.2.6)
       convex-helpers:
         specifier: 0.1.127
-        version: 0.1.127(patch_hash=857cb4493d559df3c97d7999fbc2982acb918a5752a67243af4276883e9737c7)(@standard-schema/spec@1.1.0)(convex@1.48.0(react@19.2.6))(hono@4.13.13)(react@19.2.6)(typescript@6.0.3)(zod@4.6.6)
+        version: 0.1.127(patch_hash=857cb4493d559df3c97d7999fbc2982acb918a5752a67243af4276883e9737c7)(@standard-schema/spec@1.1.0)(convex@1.48.0(react@19.2.6))(hono@4.13.14)(react@19.2.6)(typescript@6.0.3)(zod@4.6.6)
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@19.2.6)
@@ -183,7 +183,7 @@ importers:
         version: 7.2.0
       convex-helpers:
         specifier: 0.1.127
-        version: 0.1.127(patch_hash=857cb4493d559df3c97d7999fbc2982acb918a5752a67243af4276883e9737c7)(@standard-schema/spec@1.1.0)(convex@1.48.0(react@19.2.6))(hono@4.13.13)(react@19.2.6)(typescript@6.0.3)(zod@4.6.6)
+        version: 0.1.127(patch_hash=857cb4493d559df3c97d7999fbc2982acb918a5752a67243af4276883e9737c7)(@standard-schema/spec@1.1.0)(convex@1.48.0(react@19.2.6))(hono@4.13.14)(react@19.2.6)(typescript@6.0.3)(zod@4.6.6)
       mimetext:
         specifier: ^3.0.28
         version: 3.0.28
@@ -220,7 +220,7 @@ importers:
         version: 1.48.0(react@19.2.6)
       convex-helpers:
         specifier: 0.1.127
-        version: 0.1.127(patch_hash=857cb4493d559df3c97d7999fbc2982acb918a5752a67243af4276883e9737c7)(@standard-schema/spec@1.1.0)(convex@1.48.0(react@19.2.6))(hono@4.13.13)(react@19.2.6)(typescript@6.0.3)(zod@4.6.7)
+        version: 0.1.127(patch_hash=857cb4493d559df3c97d7999fbc2982acb918a5752a67243af4276883e9737c7)(@standard-schema/spec@1.1.0)(convex@1.48.0(react@19.2.6))(hono@4.13.14)(react@19.2.6)(typescript@6.0.3)(zod@4.6.7)
     devDependencies:
       '@samebase/convex-cloudflare-email-inbox':
         specifier: workspace:*
@@ -848,7 +848,7 @@ packages:
     resolution: {integrity: sha512-ZcnNVhKTmyDJeg0UlnZjvM73JBsTAuhrH/J4fjwGOw59PwOW51r4J+p6CsKZWXdKSme4MFqU62CZMOsdDrU4CA==}
     engines: {node: '>=20'}
     peerDependencies:
-      hono: 4.13.13
+      hono: 4.13.14
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -3175,7 +3175,7 @@ packages:
     peerDependencies:
       '@standard-schema/spec': ^1.0.0
       convex: ^1.46.0
-      hono: 4.13.13
+      hono: 4.13.14
       react: ^17.0.2 || ^18.0.0 || ^19.0.0
       typescript: ^5.5 || ^6.0.0 || ^7.0.0
       zod: ^3.25.0 || ^4.0.0
@@ -3552,8 +3552,8 @@ packages:
     resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
     engines: {node: '>= 0.4'}
 
-  hono@4.13.13:
-    resolution: {integrity: sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==}
+  hono@4.13.14:
+    resolution: {integrity: sha512-yhRLQ21U6qa9Hsu2N7Qcbh8tE+WKEcoErjIo56LeSGiGXGp9sA7UpE86Ui9uexb61KakiGwuHMn2QdV7w6i6kQ==}
     engines: {node: '>=16.9.0'}
 
   http-errors@2.0.1:
@@ -5418,9 +5418,9 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@hono/node-server@2.0.10(hono@4.13.13)':
+  '@hono/node-server@2.0.10(hono@4.13.14)':
     dependencies:
-      hono: 4.13.13
+      hono: 4.13.14
 
   '@img/colour@1.1.0': {}
 
@@ -5549,7 +5549,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)':
     dependencies:
-      '@hono/node-server': 2.0.10(hono@4.13.13)
+      '@hono/node-server': 2.0.10(hono@4.13.14)
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
       content-type: 1.0.5
@@ -5559,7 +5559,7 @@ snapshots:
       eventsource-parser: 3.0.8
       express: 5.2.1
       express-rate-limit: 8.5.1(express@5.2.1)
-      hono: 4.13.13
+      hono: 4.13.14
       jose: 6.2.3
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -7430,22 +7430,22 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-helpers@0.1.127(patch_hash=857cb4493d559df3c97d7999fbc2982acb918a5752a67243af4276883e9737c7)(@standard-schema/spec@1.1.0)(convex@1.48.0(react@19.2.6))(hono@4.13.13)(react@19.2.6)(typescript@6.0.3)(zod@4.6.6):
+  convex-helpers@0.1.127(patch_hash=857cb4493d559df3c97d7999fbc2982acb918a5752a67243af4276883e9737c7)(@standard-schema/spec@1.1.0)(convex@1.48.0(react@19.2.6))(hono@4.13.14)(react@19.2.6)(typescript@6.0.3)(zod@4.6.6):
     dependencies:
       convex: 1.48.0(react@19.2.6)
     optionalDependencies:
       '@standard-schema/spec': 1.1.0
-      hono: 4.13.13
+      hono: 4.13.14
       react: 19.2.6
       typescript: 6.0.3
       zod: 4.6.6
 
-  convex-helpers@0.1.127(patch_hash=857cb4493d559df3c97d7999fbc2982acb918a5752a67243af4276883e9737c7)(@standard-schema/spec@1.1.0)(convex@1.48.0(react@19.2.6))(hono@4.13.13)(react@19.2.6)(typescript@6.0.3)(zod@4.6.7):
+  convex-helpers@0.1.127(patch_hash=857cb4493d559df3c97d7999fbc2982acb918a5752a67243af4276883e9737c7)(@standard-schema/spec@1.1.0)(convex@1.48.0(react@19.2.6))(hono@4.13.14)(react@19.2.6)(typescript@6.0.3)(zod@4.6.7):
     dependencies:
       convex: 1.48.0(react@19.2.6)
     optionalDependencies:
       '@standard-schema/spec': 1.1.0
-      hono: 4.13.13
+      hono: 4.13.14
       react: 19.2.6
       typescript: 6.0.3
       zod: 4.6.7
@@ -7808,7 +7808,7 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hono@4.13.13: {}
+  hono@4.13.14: {}
 
   http-errors@2.0.1:
     dependencies:
