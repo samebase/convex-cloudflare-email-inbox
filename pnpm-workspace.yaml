@@ -11,6 +11,8 @@ allowBuilds:
   sharp: false
   workerd: true
 overrides:
+  # Two advisories on seroval 1.6.8 (GHSA-f86p-h4j2-7qgj, GHSA-9wx9-5pv9-3349); 1.6.12 is clean.
+  seroval: 1.6.12
   "@samebase/alchemy-convex@0.2.0>alchemy": 2.0.0-beta.84
   "@hono/node-server": 2.0.10
   "@samebase/convex-hosting>zod": 4.6.6

@@ -11,6 +11,7 @@ catalogs:
       version: 0.3.0
 
 overrides:
+  seroval: 1.6.12
   '@samebase/alchemy-convex@0.2.0>alchemy': 2.0.0-beta.84
   '@hono/node-server': 2.0.10
   '@samebase/convex-hosting>zod': 4.6.6
@@ -4358,12 +4359,12 @@ packages:
     peerDependencies:
       seroval: ^1.6.3
 
-  seroval@1.6.3:
-    resolution: {integrity: sha512-5PwLbVPpT4DEki1hYVSSsoxWY6xCNMVucAVLK/CH0mXSDfp/I4KaAex72q80GNt5hpn7CCMGdSpIg4YGqH/wXQ==}
+  seroval@1.6.12:
+    resolution: {integrity: sha512-CqbIVfk/7GL3ITwZI55lcPbpQbjHZ2DD5cUj4iH7E9YsCfHNJV1mx7yNp86Z84w5IpmkZZS/2s5vPOWmVWSdQg==}
     engines: {node: '>=10'}
 
-  seroval@1.6.8:
-    resolution: {integrity: sha512-HlSgSAkTk4EqHcje1ptJjfZi1YDv5KbhVJ/d3P7T/nAXua2VmDu+AKDX5VTdFfZf48nDkWB2TKYt0DrCSa+3wg==}
+  seroval@1.6.3:
+    resolution: {integrity: sha512-5PwLbVPpT4DEki1hYVSSsoxWY6xCNMVucAVLK/CH0mXSDfp/I4KaAex72q80GNt5hpn7CCMGdSpIg4YGqH/wXQ==}
     engines: {node: '>=10'}
 
   serve-static@2.2.1:
@@ -6850,8 +6851,8 @@ snapshots:
     dependencies:
       '@tanstack/history': 1.162.4
       cookie-es: 3.1.1
-      seroval: 1.6.8
-      seroval-plugins: 1.6.8(seroval@1.6.8)
+      seroval: 1.6.12
+      seroval-plugins: 1.6.8(seroval@1.6.12)
 
   '@tanstack/router-generator@1.167.21':
     dependencies:
@@ -6951,7 +6952,7 @@ snapshots:
       '@tanstack/router-core': 1.171.34
       '@tanstack/start-fn-stubs': 1.162.0
       '@tanstack/start-storage-context': 1.167.36
-      seroval: 1.6.8
+      seroval: 1.6.12
 
   '@tanstack/start-fn-stubs@1.162.0': {}
 
@@ -6970,7 +6971,7 @@ snapshots:
       lightningcss: 1.33.0
       pathe: 2.0.3
       picomatch: 4.0.7
-      seroval: 1.6.8
+      seroval: 1.6.12
       source-map: 0.7.6
       srvx: 0.11.22
       tinyglobby: 0.2.17
@@ -7002,7 +7003,7 @@ snapshots:
       '@tanstack/start-storage-context': 1.167.36
       fetchdts: 0.1.7
       h3-v2: h3@2.0.1-rc.20
-      seroval: 1.6.8
+      seroval: 1.6.12
     transitivePeerDependencies:
       - crossws
 
@@ -8537,13 +8538,13 @@ snapshots:
     dependencies:
       seroval: 1.6.3
 
-  seroval-plugins@1.6.8(seroval@1.6.8):
+  seroval-plugins@1.6.8(seroval@1.6.12):
     dependencies:
-      seroval: 1.6.8
+      seroval: 1.6.12
+
+  seroval@1.6.12: {}
 
   seroval@1.6.3: {}
-
-  seroval@1.6.8: {}
 
   serve-static@2.2.1:
     dependencies:
