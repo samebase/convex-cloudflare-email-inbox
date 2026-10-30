@@ -1,4 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"]
+  "extends": ["config:recommended"],
+  "separateMajorMinor": false,
+  "packageRules": [
+    {
+      "description": "One pull request for every update type, so that the updates merge together.",
+      "groupName": "Routine updates",
+      "matchUpdateTypes": ["major", "minor", "patch", "pin", "pinDigest", "digest"]
+    }
+  ]
 }
