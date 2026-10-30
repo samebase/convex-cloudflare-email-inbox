@@ -40,7 +40,7 @@
     "prepack": "pnpm run build"
   },
   "dependencies": {
-    "convex-helpers": "0.1.127"
+    "convex-helpers": "0.1.133"
   },
   "devDependencies": {
     "@samebase/convex-cloudflare-email-inbox": "workspace:*",
