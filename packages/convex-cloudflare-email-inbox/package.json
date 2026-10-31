@@ -71,8 +71,8 @@
     "codegen": "convex codegen --component-dir ./src/component"
   },
   "dependencies": {
-    "cloudflare": "7.2.0",
-    "convex-helpers": "0.1.127",
+    "cloudflare": "7.3.0",
+    "convex-helpers": "0.1.133",
     "mimetext": "^3.0.28",
     "postal-mime": "^4.0.8",
     "zod": "^4.6.6"
@@ -80,16 +80,16 @@
   "devDependencies": {
     "@alchemy.run/cloudflare": "2.0.0-beta.84",
     "alchemy": "2.0.0-beta.84",
-    "convex": "1.48.0",
-    "convex-test": "0.0.56",
+    "convex": "1.49.0",
+    "convex-test": "0.0.66",
     "effect": "^4.0.5",
-    "typescript": "~6.0.2"
+    "typescript": "~7.0.0"
   },
   "peerDependencies": {
     "@alchemy.run/cloudflare": "2.0.0-beta.84",
     "alchemy": "2.0.0-beta.84",
     "convex": "^1.46.0",
-    "convex-test": "^0.0.56",
+    "convex-test": "^0.0.56 || ^0.0.66",
     "effect": "^4.0.5"
   },
   "peerDependenciesMeta": {
