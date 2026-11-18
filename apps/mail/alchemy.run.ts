@@ -18,7 +18,13 @@
 //   npx alchemy plan --stage prod
 //
 // A fork changes the three values below.
-import { bindComponent, Deployment, providers, state } from "@samebase/alchemy-convex";
+import {
+  bindComponent,
+  Deployment,
+  providers,
+  state,
+  withRunRecord,
+} from "@samebase/alchemy-convex";
 // These resources still own the existing key and environment variables.
 import * as Convex from "@samebase/alchemy-convex-resources";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
@@ -30,7 +36,8 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 
 // The team id, not the slug: CI authenticates with a team access token, and
-// Convex answers the slug lookup only for a user login.
+// Convex answers the slug lookup only for a user login. Only the project from
+// the 0.2.0 alias takes it; the state uses the team of the credential.
 const CONVEX_TEAM = 38516;
 const CONVEX_PROJECT = "mail";
 const MAIL_ZONE = "json.md";
@@ -46,8 +53,8 @@ export default Alchemy.Stack(
         Layer.provide(providers()),
       ),
     ),
-    // Samebase reads this team's alchemy-state project and the repository's run record.
-    state: state({ team: CONVEX_TEAM }),
+    // Samebase reads the credential's team's alchemy-state project and the run record.
+    state: withRunRecord(state()),
   },
   Effect.gen(function* () {
     // Found by name when it has no state, then by id. A delete of the
