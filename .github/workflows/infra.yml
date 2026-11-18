@@ -74,8 +74,10 @@ jobs:
       - run: pnpm --filter @samebase/convex-cloudflare-email-inbox build
       - run: npx alchemy plan --stage prod --adopt --no-input --detailed
         working-directory: apps/mail
-      # Read-only: reports resources that changed outside the stack.
-      - run: npx alchemy drift --stage prod --no-input
+      # Read-only: reports resources that changed outside the stack. Since Alchemy beta.86, drift
+      # exits 2 when it finds drift; that is a report here, because the deploy on main repairs it
+      # with --detect-drift. Any other failure still fails the job.
+      - run: npx alchemy drift --stage prod --no-input || test $? -eq 2
         working-directory: apps/mail
 
   deploy:
