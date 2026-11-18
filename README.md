@@ -81,11 +81,11 @@ them to its mounted `mail` component. The inbox enables Email Routing on the mai
 points the zone's catch-all rule at itself. The app has no Worker: its Convex deployment serves it,
 and `.github/workflows/deploy.yml` deploys it. Run the `alchemy` commands in `apps/mail`.
 `.github/workflows/infra.yml` runs the stack there: a plan and a drift report on pull requests that
-touch these files, and a deploy on `main`. `Convex.state({ team })` stores the state in the team's
-`alchemy-state` project. Samebase finds the stack by its repository and app path,
+touch these files, and a deploy on `main`. `withRunRecord(state())` stores the state in the
+`alchemy-state` project of the credential's team. Samebase finds the stack by its repository and app path,
 `samebase/convex-cloudflare-email-inbox/apps/mail`, and reads the run record and resources there.
 
-The app uses `@samebase/alchemy-convex` 0.11 for state storage and the production deployment, and its 0.2 release through the
+The app uses `@samebase/alchemy-convex` 0.41 for state storage and the production deployment, and its 0.2 release through the
 `@samebase/alchemy-convex-resources` alias for the existing project, deploy key, and environment
 variables. Version 0.4 removed the last two resource APIs. Keeping their provider preserves their
 state and credentials. Both packages use the same Alchemy engine.
