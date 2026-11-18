@@ -1,10 +1,12 @@
-# Publishes the two packages to npm after CI succeeds on main, the same shape as
-# publish.yml in samebase/sidebars: the verified commit is checked out, stable
-# versions only, and JS-DevTools/npm-publish with `strategy: upgrade` publishes a
-# package only when its package.json version is newer than the one on npm. Uses
-# npm trusted publishing (OIDC) for provenance: each package's trusted publisher
-# on npmjs.com must name this repository and this workflow file. No npm token is
-# stored. The component publishes before the UI package, which peers on it.
+# Publishes the two packages to npm after CI succeeds on main: the verified commit
+# is checked out, stable versions only, and a package publishes only when its
+# package.json version is not on npm yet, the same steps as the package releases of
+# samebase/samebase. Uses npm trusted publishing (OIDC) for provenance: each
+# package's trusted publisher on npmjs.com names this repository and this workflow
+# file. No npm token is stored. The npm CLI does the OIDC exchange itself;
+# JS-DevTools/npm-publish did not, and reported each new version as "already
+# published" without a publish. The component publishes before the UI package,
+# which peers on it.
 name: Publish
 
 on:
@@ -42,6 +44,7 @@ jobs:
         with:
           node-version-file: .node-version
           package-manager-cache: false
+          registry-url: https://registry.npmjs.org
 
       - name: Select stable releases
         id: release
@@ -70,20 +73,16 @@ jobs:
           pnpm --filter @samebase/convex-cloudflare-email-inbox build
           pnpm --filter @samebase/convex-cloudflare-email-inbox-ui build
 
-      - name: Publish newer stable component
+      # pnpm pack replaces workspace: and catalog: versions with real ones.
+      - name: Publish the versions that are not on npm
         if: steps.release.outputs.publish == 'true'
-        uses: JS-DevTools/npm-publish@0fd2f4369c5d6bcfcde6091a7c527d810b9b5c3f # v4.1.5
-        with:
-          package: packages/convex-cloudflare-email-inbox
-          strategy: upgrade
-          tag: latest
-          access: public
-
-      - name: Publish newer stable UI package
-        if: steps.release.outputs.publish == 'true'
-        uses: JS-DevTools/npm-publish@0fd2f4369c5d6bcfcde6091a7c527d810b9b5c3f # v4.1.5
-        with:
-          package: packages/convex-cloudflare-email-inbox-ui
-          strategy: upgrade
-          tag: latest
-          access: public
+        run: |
+          for package in packages/convex-cloudflare-email-inbox packages/convex-cloudflare-email-inbox-ui; do
+            tag="$(node -p "const p = require('./${package}/package.json'); p.name + '@' + p.version")"
+            if npm view "${tag}" version >/dev/null 2>&1; then
+              echo "${tag} is already on npm; nothing to publish"
+              continue
+            fi
+            tarball="$(cd "${package}" && pnpm pack --pack-destination "${RUNNER_TEMP}" | tail -n 1)"
+            npx --yes npm@11.21.0 publish "${tarball}" --access public --provenance --tag latest
+          done
