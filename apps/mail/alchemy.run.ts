@@ -71,11 +71,15 @@ export default Alchemy.Stack(
     // comes from the project, not from the deployment, because the deployment
     // takes its env from the inbox. The rule is the one of Convex.Deployment:
     // https://<name>[.<region>].convex.cloud serves the site on .convex.site.
+    const required = (value: string | undefined) =>
+      value === undefined
+        ? Effect.die(new Error(`Convex project ${CONVEX_PROJECT} has no production deployment.`))
+        : Effect.succeed(value);
     const convexSiteUrl = project.prodDeploymentUrl.pipe(
       Output.mapEffect((url) =>
-        url === undefined
-          ? Effect.die(new Error(`Convex project ${CONVEX_PROJECT} has no production deployment.`))
-          : Effect.succeed(url.replace(/\.convex\.cloud$/, ".convex.site")),
+        required(url).pipe(
+          Effect.map((found) => found.replace(/\.convex\.cloud$/, ".convex.site")),
+        ),
       ),
     );
     const inbox = yield* EmailInbox("Mail", {
@@ -98,14 +102,16 @@ export default Alchemy.Stack(
         CLOUDFLARE_EMAIL_ACCOUNT_ID: inbox.env.CLOUDFLARE_EMAIL_ACCOUNT_ID,
       },
     }).pipe(Alchemy.AdoptPolicy.adopt());
-    const deployment = production.name;
 
     // Step 1 of the move off the alchemy-convex 0.2.0 resources. The deploy
     // key and the four EnvironmentVariable resources below now only record
-    // RemovalPolicy.retain in state. The next change removes them from this
+    // RemovalPolicy.retain in state. They take the deployment name from the
+    // project, which the plan knows, so they stay a noop while Deployment
+    // updates. The next change removes them from this
     // file: Alchemy then drops them from state and leaves the key and the
     // variables in Convex, where Deployment owns the variables. The key was
     // made for the old Workers Builds deploys and keeps its name.
+    const deployment = project.prodDeploymentName.pipe(Output.mapEffect(required));
     const deployKey = yield* Convex.DeployKey("DeployKey", {
       deployment,
       name: "workers-builds",
