@@ -25,12 +25,14 @@ import {
   state,
   withRunRecord,
 } from "@samebase/alchemy-convex";
-// The 0.2.0 resources: Project, and the key and variables that leave in step 2 (see below).
+// The 0.2.0 Project. Its providers also read the state rows of the old deploy
+// key and the four old EnvironmentVariable resources. They have
+// RemovalPolicy.retain in state, so this deploy drops the rows and leaves the
+// key and the variables in Convex. The next change moves Project to 0.41.0.
 import * as Convex from "@samebase/alchemy-convex-resources";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "@alchemy.run/cloudflare";
-import * as Namespace from "alchemy/Namespace";
 import * as Output from "alchemy/Output";
 import * as Provider from "alchemy/Provider";
 import * as Effect from "effect/Effect";
@@ -103,61 +105,12 @@ export default Alchemy.Stack(
       },
     }).pipe(Alchemy.AdoptPolicy.adopt());
 
-    // Step 1 of the move off the alchemy-convex 0.2.0 resources. The deploy
-    // key and the four EnvironmentVariable resources below now only record
-    // RemovalPolicy.retain in state. They take the deployment name from the
-    // project, which the plan knows, so they stay a noop while Deployment
-    // updates. The next change removes them from this
-    // file: Alchemy then drops them from state and leaves the key and the
-    // variables in Convex, where Deployment owns the variables. The key was
-    // made for the old Workers Builds deploys and keeps its name.
-    const deployment = project.prodDeploymentName.pipe(Output.mapEffect(required));
-    const deployKey = yield* Convex.DeployKey("DeployKey", {
-      deployment,
-      name: "workers-builds",
-      allowedActions: [
-        "deployment:deploy",
-        "deployment:env:view",
-        "deployment:env:write",
-        "deployment:data:view",
-      ],
-    }).pipe(Alchemy.RemovalPolicy.retain());
     // Tells Samebase that the installed component "mail" owns the Mail namespace.
     yield* bindComponent({
       deployment: production,
       component: "mail",
       namespace: inbox.worker.Namespace,
     });
-
-    yield* Namespace.push(
-      "Mail",
-      Effect.gen(function* () {
-        yield* Convex.EnvironmentVariable("ConvexBridgeSecret", {
-          deployment,
-          deployKey: deployKey.deployKey,
-          name: "MAIL_BRIDGE_SECRET",
-          value: inbox.env.MAIL_BRIDGE_SECRET,
-        }).pipe(Alchemy.RemovalPolicy.retain());
-        yield* Convex.EnvironmentVariable("ConvexWorkerUrl", {
-          deployment,
-          deployKey: deployKey.deployKey,
-          name: "MAIL_WORKER_URL",
-          value: inbox.env.MAIL_WORKER_URL,
-        }).pipe(Alchemy.RemovalPolicy.retain());
-        yield* Convex.EnvironmentVariable("ConvexSendingToken", {
-          deployment,
-          deployKey: deployKey.deployKey,
-          name: "CLOUDFLARE_EMAIL_API_TOKEN",
-          value: inbox.env.CLOUDFLARE_EMAIL_API_TOKEN,
-        }).pipe(Alchemy.RemovalPolicy.retain());
-        yield* Convex.EnvironmentVariable("ConvexSendingAccount", {
-          deployment,
-          deployKey: deployKey.deployKey,
-          name: "CLOUDFLARE_EMAIL_ACCOUNT_ID",
-          value: inbox.env.CLOUDFLARE_EMAIL_ACCOUNT_ID,
-        }).pipe(Alchemy.RemovalPolicy.retain());
-      }),
-    );
 
     return { url: convexSiteUrl, inbox: { workerUrl: inbox.worker.url } };
   }),
