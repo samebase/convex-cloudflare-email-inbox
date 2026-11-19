@@ -74,8 +74,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/convex-cloudflare-email-inbox-ui
       '@samebase/convex-hosting':
-        specifier: 0.12.0
-        version: 0.12.0(convex@1.48.0(react@19.2.6))
+        specifier: 0.15.0
+        version: 0.15.0(convex@1.48.0(react@19.2.6))
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))
@@ -2332,8 +2332,8 @@ packages:
       alchemy: 2.0.0-beta.87
       effect: ^4.1.4
 
-  '@samebase/convex-hosting@0.12.0':
-    resolution: {integrity: sha512-4UwAb2fVcy10JF+VTk7dGA6HdnROIsJMqVtseJnioexfqfL1CXh07BM895mrvlJ6ipG+oZIjUr1jaNl6dq5fLA==}
+  '@samebase/convex-hosting@0.15.0':
+    resolution: {integrity: sha512-sX+sxID16r56ZnTl6QiRa111VF5xoDW8/RryHh7Eerwx6unymsJx/1nW5fEjKAUrOm+k+ccV3UE3SpYXwNAZOQ==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -3979,11 +3979,6 @@ packages:
   mime-types@3.0.2:
     resolution: {integrity: sha512-Lbgzdk0h4juoQ9fCKXW4by0UJqj+nOOrI9MJ1sSj4nI8aI2eo1qmvQEie4VD1glsS250n15LsWsYtCugiStS5A==}
     engines: {node: '>=18'}
-
-  mime@4.1.0:
-    resolution: {integrity: sha512-X5ju04+cAzsojXKes0B/S4tcYtFAJ6tTMuSPBEn9CPGlrWr8Fiw7qYeLT0XyH80HSoAoqWCaz+MWKh22P7G1cw==}
-    engines: {node: '>=16'}
-    hasBin: true
 
   mime@4.1.1:
     resolution: {integrity: sha512-YAApRsTpM2+gnUFHhRNGfkX8NK0V5xj1nyQLufGlwEI+eX4xRsTcel2IXDuMEGSGjBvzykNW4VuoEACgwYe7BQ==}
@@ -6696,11 +6691,11 @@ snapshots:
       alchemy: 2.0.0-beta.87(@effect/platform-node@4.1.4(effect@4.1.4)(redis@6.3.0))(@types/react@19.2.14)(@voidzero-dev/vite-plus-core@0.3.0(@types/node@24.13.3)(esbuild@0.27.0)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1))(effect@4.1.4)(ws@8.23.0)
       effect: 4.1.4
 
-  '@samebase/convex-hosting@0.12.0(convex@1.48.0(react@19.2.6))':
+  '@samebase/convex-hosting@0.15.0(convex@1.48.0(react@19.2.6))':
     dependencies:
       convex: 1.48.0(react@19.2.6)
       ignore: 7.0.12
-      mime: 4.1.0
+      mime: 4.1.1
       zod: 4.6.7
 
   '@sec-ant/readable-stream@0.4.1': {}
@@ -8159,8 +8154,6 @@ snapshots:
   mime-types@3.0.2:
     dependencies:
       mime-db: 1.54.0
-
-  mime@4.1.0: {}
 
   mime@4.1.1: {}
 
