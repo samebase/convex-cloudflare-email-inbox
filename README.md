@@ -85,15 +85,14 @@ touch these files, and a deploy on `main`. `withRunRecord(state())` stores the s
 `alchemy-state` project of the credential's team. Samebase finds the stack by its repository and app path,
 `samebase/convex-cloudflare-email-inbox/apps/mail`, and reads the run record and resources there.
 
-The app uses `@samebase/alchemy-convex` 0.41 for state storage and the production deployment, and its 0.2 release through the
-`@samebase/alchemy-convex-resources` alias for the existing project, deploy key, and environment
-variables. Version 0.4 removed the last two resource APIs. Keeping their provider preserves their
-state and credentials. Both packages use the same Alchemy engine.
+The app uses `@samebase/alchemy-convex` 0.41 for state storage, the project, and the production
+deployment.
 
 The `Deployment` resource adopts the project's existing production deployment so Samebase can
-show it. It declares no `source` or `env`: the hosting workflow deploys the code, and the existing
-environment resources manage the component's variables. Its name and site URL also connect the
-inbox and environment resources to that deployment.
+show it. It declares no `source`: the hosting workflow deploys the code. Its `env` holds the four
+values that the inbox makes and that `convex.config.ts` passes to the `mail` component. The inbox
+takes the site URL of the deployment from the project, because the deployment takes its `env`
+from the inbox.
 
 The stack owns the mail infrastructure and credentials. Owner access settings stay in the Convex
 dashboard.
