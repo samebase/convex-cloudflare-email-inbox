@@ -1,5 +1,5 @@
-// Setup stack for Mail. It declares the Convex project, its production deployment,
-// a deploy key, and the inbox of the component
+// Setup stack for Mail. It declares the Convex project, its production deployment
+// with the component's environment values, and the inbox of the component
 // (@samebase/convex-cloudflare-email-inbox/alchemy): the Worker that receives
 // mail, which the component ships and Alchemy bundles here, its R2 bucket,
 // its sending domain and token, and the values that Worker and Convex share.
@@ -17,55 +17,31 @@
 // Zone read, DNS, Email Sending, Account API Tokens) and the Convex CLI login:
 //   npx alchemy plan --stage prod
 //
-// A fork changes the three values below.
-import {
-  bindComponent,
-  Deployment,
-  providers,
-  state,
-  withRunRecord,
-} from "@samebase/alchemy-convex";
-// The 0.2.0 Project. Its providers also read the state rows of the old deploy
-// key and the four old EnvironmentVariable resources. They have
-// RemovalPolicy.retain in state, so this deploy drops the rows and leaves the
-// key and the variables in Convex. The next change moves Project to 0.41.0.
-import * as Convex from "@samebase/alchemy-convex-resources";
+// A fork changes the two values below.
+import * as Convex from "@samebase/alchemy-convex";
 import { EmailInbox } from "@samebase/convex-cloudflare-email-inbox/alchemy";
 import * as Alchemy from "alchemy";
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Output from "alchemy/Output";
-import * as Provider from "alchemy/Provider";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 
-// The team id, not the slug: CI authenticates with a team access token, and
-// Convex answers the slug lookup only for a user login. Only the project from
-// the 0.2.0 alias takes it; the state uses the team of the credential.
-const CONVEX_TEAM = 38516;
 const CONVEX_PROJECT = "mail";
 const MAIL_ZONE = "json.md";
 
 export default Alchemy.Stack(
   "samebase/convex-cloudflare-email-inbox/apps/mail",
   {
-    providers: Layer.mergeAll(
-      Cloudflare.providers(),
-      Convex.providers(),
-      // Both releases use the Convex collection key. Add only the modern deployment provider.
-      Provider.effect(Deployment, Provider.findProvider(Deployment)).pipe(
-        Layer.provide(providers()),
-      ),
-    ),
+    providers: Layer.mergeAll(Cloudflare.providers(), Convex.providers()),
     // Samebase reads the credential's team's alchemy-state project and the run record.
-    state: withRunRecord(state()),
+    state: Convex.withRunRecord(Convex.state()),
   },
   Effect.gen(function* () {
-    // Found by name when it has no state, then by id. A delete of the
-    // project deletes all of its deployments and data. Convex.Project
-    // retains by default since alchemy-convex 0.2.0; the explicit retain
-    // keeps that visible here.
+    // In the team of the credential. Found by name when it has no state, then
+    // by id. A delete of the project deletes all of its deployments and data.
+    // Convex.Project retains by default; the explicit retain keeps that
+    // visible here.
     const project = yield* Convex.Project("Project", {
-      team: CONVEX_TEAM,
       name: CONVEX_PROJECT,
     }).pipe(Alchemy.RemovalPolicy.retain());
 
@@ -92,9 +68,8 @@ export default Alchemy.Stack(
 
     // The existing deployment has code, so adoption is explicit. Hosting
     // deploys the code. The stack sets the four values that convex.config.ts
-    // passes to components.mail. The variables exist with the same values, so
-    // the deployment takes them over without --adopt.
-    const production = yield* Deployment("Deployment", {
+    // passes to components.mail.
+    const production = yield* Convex.Deployment("Deployment", {
       project: { projectId: project.projectId },
       type: "prod",
       env: {
@@ -106,7 +81,7 @@ export default Alchemy.Stack(
     }).pipe(Alchemy.AdoptPolicy.adopt());
 
     // Tells Samebase that the installed component "mail" owns the Mail namespace.
-    yield* bindComponent({
+    yield* Convex.bindComponent({
       deployment: production,
       component: "mail",
       namespace: inbox.worker.Namespace,
